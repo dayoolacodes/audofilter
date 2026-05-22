@@ -1,0 +1,6 @@
+# Ignore macOS filesystem artifacts
+.DS_Store
+
+# Ignore generated extension archive and temporary folder
+cleanmute.zip
+cleanmute/

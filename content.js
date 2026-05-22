@@ -171,10 +171,24 @@ if (window.__cleanMuteLoaded) {
 
   function isBlockedCueText(text) {
     const lower = (text || '').toString().toLowerCase();
-    for (const w of settings.blockedWords || []) {
+    if (!lower) return null;
+    // If subtitle already contains masking characters, skip matching to avoid re-triggering
+    if (lower.indexOf('*') !== -1) return null;
+    // Tokenize into words using Unicode letter groups to avoid partial matches (e.g., 'class' matching 'ass')
+    let tokens = [];
+    try {
+      tokens = lower.match(/\p{L}+/gu) || [];
+    } catch (e) {
+      tokens = lower.match(/[A-Za-zÀ-ÖØ-öø-ÿ]+/g) || [];
+    }
+    if (!tokens.length) return null;
+    const blocked = settings.blockedWords || [];
+    for (const w of blocked) {
       if (!w) continue;
-      const regex = new RegExp('\\b' + escapeRegExp(w.trim()) + '\\b', 'i');
-      if (regex.test(lower)) return w;
+      const wl = w.trim().toLowerCase();
+      for (const t of tokens) {
+        if (t === wl) return w;
+      }
     }
     return null;
   }
@@ -352,15 +366,14 @@ if (window.__cleanMuteLoaded) {
       const text = (el.innerText || el.textContent || '').trim();
       if (!text) continue;
       const lower = text.toLowerCase();
-      for (const w of blocked) {
-        const wTrim = w.trim();
-        if (!wTrim) continue;
-        const regex = new RegExp('\\b' + escapeRegExp(wTrim) + '\\b', 'i');
-        if (!regex.test(lower)) continue;
-
-        const elementId = getSubtitleElementId(el);
-        const matchKey = `${elementId}::${wTrim.toLowerCase()}::${lower}`;
-        const last = debounceMap.get(matchKey) || 0;
+      // skip already-masked content
+      if (lower.indexOf('*') !== -1) continue;
+      const matchedWord = (function(txt) { try { return isBlockedCueText(txt); } catch (e) { return null; } })(lower);
+      if (!matchedWord) continue;
+      const wTrim = matchedWord.trim();
+      const elementId = getSubtitleElementId(el);
+      const matchKey = `${elementId}::${wTrim.toLowerCase()}::${lower}`;
+      const last = debounceMap.get(matchKey) || 0;
         if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) {
           // debounced for this exact subtitle element + word + text
           continue;
@@ -396,7 +409,6 @@ if (window.__cleanMuteLoaded) {
 
         // once we matched a blocked word in this element, don't check other words for same element in this scan
         break;
-      }
     }
   }
 

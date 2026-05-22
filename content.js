@@ -42,6 +42,8 @@ if (window.__cleanMuteLoaded) {
   let originalTextStore = new WeakMap(); // element -> originalText
   let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
   let attachedTracks = new WeakSet(); // textTrack -> attached flag
+  let subtitleElementIds = new WeakMap(); // element -> unique id
+  let nextSubtitleElementId = 1;
 
   /* ================
      Utility functions
@@ -53,6 +55,13 @@ if (window.__cleanMuteLoaded) {
   }
 
   function now() { return Date.now(); }
+
+  function getSubtitleElementId(el) {
+    if (!subtitleElementIds.has(el)) {
+      subtitleElementIds.set(el, `cleanmute-el-${nextSubtitleElementId++}`);
+    }
+    return subtitleElementIds.get(el);
+  }
 
   function loadSettings(callback) {
     chrome.storage.sync.get(DEFAULTS, (items) => {
@@ -349,7 +358,8 @@ if (window.__cleanMuteLoaded) {
         const regex = new RegExp('\\b' + escapeRegExp(wTrim) + '\\b', 'i');
         if (!regex.test(lower)) continue;
 
-        const matchKey = `${wTrim.toLowerCase()}::${lower}`;
+        const elementId = getSubtitleElementId(el);
+        const matchKey = `${elementId}::${wTrim.toLowerCase()}::${lower}`;
         const last = debounceMap.get(matchKey) || 0;
         if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) {
           // debounced for this exact subtitle element + word + text
@@ -486,6 +496,12 @@ if (window.__cleanMuteLoaded) {
      Initialization
      ============= */
   loadSettings(() => {
+    // remove any leftover demo subtitle element from prior runs
+    try {
+      const d = document.getElementById('cleanmute-demo-subtitle');
+      if (d) d.remove();
+    } catch (e) {}
+
     if (settings.testMode) startDemoCycler();
     if (settings.enabled) startObserving(); else stopObserving();
     // Also rescan once a while in case observers miss something

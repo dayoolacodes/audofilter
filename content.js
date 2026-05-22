@@ -276,7 +276,7 @@ if (window.__cleanMuteLoaded) {
     if (role === 'status' || role === 'alert' || role === 'log') return true;
     const className = (el.className || '').toString().toLowerCase();
     if (className.includes('subtitle') || className.includes('caption') || className.includes('captions') || className.includes('timedtext')) return true;
-    if (rect.top > window.innerHeight * 0.4) return true;
+    if (rect.top > window.innerHeight * 0.5 && rect.bottom > window.innerHeight * 0.7) return true;
     return false;
   }
 
@@ -284,14 +284,16 @@ if (window.__cleanMuteLoaded) {
     const found = new Set();
     collectFromRoot(document, found);
 
-    // Fallback: scan visible text nodes and likely subtitle elements.
-    const all = Array.from(document.querySelectorAll('body *'));
-    for (const el of all) {
-      try {
-        if (isLikelySubtitleElement(el)) {
-          found.add(el);
-        }
-      } catch (e) { /* ignore inaccessibles */ }
+    if (!found.size) {
+      // Fallback: scan visible elements only when no known subtitle containers are found.
+      const all = Array.from(document.querySelectorAll('body *'));
+      for (const el of all) {
+        try {
+          if (isLikelySubtitleElement(el)) {
+            found.add(el);
+          }
+        } catch (e) { /* ignore inaccessibles */ }
+      }
     }
     const candidates = Array.from(found).filter(isVisible);
     if (!candidates.length) {
@@ -413,7 +415,8 @@ if (window.__cleanMuteLoaded) {
 
   function startDemoCycler() {
     if (demoInterval) return;
-    const samples = ['This is a demo line.', 'Another clean line.'];
+    const samples = [];
+    if (!samples.length) return;
     let i = 0;
     createDemoSubtitle(samples[0]);
     demoInterval = setInterval(() => {

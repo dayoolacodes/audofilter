@@ -37,7 +37,7 @@ if (window.__cleanMuteLoaded) {
 
   let settings = {};
   let debounceMap = new Map(); // word -> lastTriggeredTime
-  let currentMuteTimers = new Map(); // video -> restoreTimeoutId
+  let currentMuteTimers = new Map(); // video -> { restoreId, prevMuted, expiresAt }
   let originalTextStore = new WeakMap(); // element -> originalText
   let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
   let attachedTracks = new WeakSet(); // textTrack -> attached flag
@@ -112,16 +112,21 @@ if (window.__cleanMuteLoaded) {
   function muteVideoForDuration(video, duration, reason) {
     if (!video) return;
     try {
-      const prevMuted = video.muted;
-      log('Muting video for', duration, 'ms — reason:', reason, 'prevMuted:', prevMuted);
-      // clear any previous restore timer for this video
-      if (currentMuteTimers.has(video)) {
-        clearTimeout(currentMuteTimers.get(video));
+      const nowMs = Date.now();
+      const existing = currentMuteTimers.get(video);
+      const prevMuted = existing ? existing.prevMuted : video.muted;
+      let remainingMs = 0;
+      if (existing && existing.expiresAt) {
+        remainingMs = Math.max(0, existing.expiresAt - nowMs);
+      }
+      const effectiveDuration = Math.max(duration, remainingMs);
+      log('Muting video for', duration, 'ms — reason:', reason, 'prevMuted:', prevMuted, 'remainingMs:', remainingMs);
+      if (existing) {
+        clearTimeout(existing.restoreId);
         currentMuteTimers.delete(video);
       }
-      // mute immediately
       video.muted = true;
-      // restore after duration, but only if it wasn't muted before
+      const expiresAt = nowMs + effectiveDuration;
       const restoreId = setTimeout(() => {
         try {
           if (!prevMuted) {
@@ -130,10 +135,12 @@ if (window.__cleanMuteLoaded) {
           } else {
             log('Video was previously muted; leaving muted state as-is');
           }
-        } catch (e) { log('Error restoring video mute', e); }
+        } catch (e) {
+          log('Error restoring video mute', e);
+        }
         currentMuteTimers.delete(video);
-      }, duration);
-      currentMuteTimers.set(video, restoreId);
+      }, effectiveDuration);
+      currentMuteTimers.set(video, { restoreId, prevMuted, expiresAt });
     } catch (e) {
       log('Error muting video', e);
     }

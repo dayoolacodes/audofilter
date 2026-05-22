@@ -1,7 +1,7 @@
 // content.js — detects subtitle changes, mutes video, optional censoring.
 // Guard against double-injection
 if (window.__cleanMuteLoaded) {
-  console.log('CleanMute: content script already loaded');
+  // already loaded
 } else {
   window.__cleanMuteLoaded = true;
 
@@ -32,7 +32,7 @@ if (window.__cleanMuteLoaded) {
   /* ================
      Utility functions
      ================ */
-  function log(...args) { console.log('CleanMute:', ...args); }
+  function log(...args) { /* silent */ }
 
   function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -3,22 +3,7 @@ const DEFAULTS = {
   enabled: true,
   blockedWords: [
     'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
-    'shit','shits','shitted','shitter','shitters','shitting','shitty','shite',
-    'bitch','bitches','bitching','bitchy',
-    'damn','damned','damning',
-    'hell','hells','hellish',
-    'ass','asses','asshole','assholes','assfuck','assfucked','assfucker','assfucking','asswipe',
-    'crap','crappy','crapping','craps',
-    'piss','pissed','pissing','pissers',
-    'motherfucker','motherfucking',
-    'dick','dicks','dickhead','dickheads',
-    'cock','cocks','cocksucker','cocksucking',
-    'tit','tits','titty','titties',
-    'twat','twats',
-    'whore','whores','whoring',
-    'slut','sluts','slutting',
-    'bloody','bollocks','bugger','buggering',
-    'bastard','bastards'
+    'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking'
   ],
   muteDuration: 1500,
   censor: true,
@@ -55,7 +40,7 @@ function save() {
       if (!tabs || !tabs[0]) return;
       chrome.tabs.sendMessage(tabs[0].id, {action:'reloadSettings'}, (resp) => {
         // might fail if content script not injected on this page — that's okay
-        console.log('CleanMute: reloadSettings response', resp);
+        // reloadSettings sent
       });
     });
   });
@@ -75,7 +60,7 @@ function injectDemo() {
     chrome.tabs.sendMessage(tabId, {action:'createDemo'}, (resp) => {
       if (chrome.runtime.lastError) {
         // content script not present — inject it programmatically then message
-        console.log('CleanMute: content script not present, injecting via scripting API');
+        // content script not present, injecting
         chrome.scripting.executeScript({
           target: {tabId},
           files: ['content.js']

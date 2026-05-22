@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CleanMute</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>CleanMute</h1>
+      <label class="row"><input type="checkbox" id="enableFilter"> Enable filtering</label>
+
+      <label class="label">Blocked words (one per line)</label>
+      <textarea id="blockedWords" rows="6" placeholder="one\nword\nanother"></textarea>
+
+      <label class="label">Mute duration (ms)</label>
+      <input id="muteDuration" type="number" min="100" step="100" />
+
+      <label class="label">Pre-mute lead (ms)</label>
+      <input id="preMuteLead" type="number" min="0" step="50" />
+
+      <label class="row"><input type="checkbox" id="censorToggle"> Censor subtitles (replace blocked words)</label>
+
+      <div class="buttons">
+        <button id="saveBtn">Save</button>
+        <button id="testBtn">Inject Demo</button>
+        <button id="stopTestBtn">Stop Demo</button>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

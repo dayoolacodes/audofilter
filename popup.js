@@ -1,7 +1,25 @@
 // popup.js — manage UI, settings, and test injection
 const DEFAULTS = {
   enabled: true,
-  blockedWords: ['fuck','shit','bitch','damn'],
+  blockedWords: [
+    'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
+    'shit','shits','shitted','shitter','shitters','shitting','shitty','shite',
+    'bitch','bitches','bitching','bitchy',
+    'damn','damned','damning',
+    'hell','hells','hellish',
+    'ass','asses','asshole','assholes','assfuck','assfucked','assfucker','assfucking','asswipe',
+    'crap','crappy','crapping','craps',
+    'piss','pissed','pissing','pissers',
+    'motherfucker','motherfucking',
+    'dick','dicks','dickhead','dickheads',
+    'cock','cocks','cocksucker','cocksucking',
+    'tit','tits','titty','titties',
+    'twat','twats',
+    'whore','whores','whoring',
+    'slut','sluts','slutting',
+    'bloody','bollocks','bugger','buggering',
+    'bastard','bastards'
+  ],
   muteDuration: 1500,
   censor: true,
   testMode: false,

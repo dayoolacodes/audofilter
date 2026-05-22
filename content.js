@@ -219,36 +219,73 @@ if (window.__cleanMuteLoaded) {
      ===================== */
   const KNOWN_SELECTORS = [
     '[data-uia*="subtitle"]',
+    '[data-uia*="caption"]',
     '.player-timedtext',
     '.atvwebplayersdk-captions-text',
+    '.atvwebplayersdk-captions-content',
+    '.atvwebplayersdk-caption-text',
     '.caption',
     '.captions',
+    '.caption-text',
+    '.playerCaptions',
     '.timedtext'
   ];
 
+  function collectFromRoot(root, found) {
+    if (!root) return;
+    try {
+      for (const sel of KNOWN_SELECTORS) {
+        const nodes = (root.querySelectorAll ? root.querySelectorAll(sel) : []);
+        nodes.forEach(el => found.add(el));
+      }
+      if (root.querySelectorAll) {
+        const all = root.querySelectorAll('*');
+        for (const child of all) {
+          if (child.shadowRoot) {
+            collectFromRoot(child.shadowRoot, found);
+          }
+        }
+      }
+    } catch (e) {
+      // Some shadow roots or cross-origin frames may be inaccessible
+    }
+  }
+
+  function isLikelySubtitleElement(el) {
+    if (!isVisible(el)) return false;
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT') return false;
+    const text = (el.innerText || el.textContent || '').trim();
+    if (!text) return false;
+    const len = text.length;
+    if (len > 400 || len < 1) return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 20 || rect.height < 10) return false;
+    const role = el.getAttribute && (el.getAttribute('role') || '').toLowerCase();
+    if (role === 'status' || role === 'alert' || role === 'log') return true;
+    const className = (el.className || '').toString().toLowerCase();
+    if (className.includes('subtitle') || className.includes('caption') || className.includes('captions') || className.includes('timedtext')) return true;
+    if (rect.top > window.innerHeight * 0.4) return true;
+    return false;
+  }
+
   function findSubtitleCandidates() {
     const found = new Set();
-    for (const sel of KNOWN_SELECTORS) {
-      document.querySelectorAll(sel).forEach(el => found.add(el));
-    }
-    // Fallback: find visible short text elements near bottom
+    collectFromRoot(document, found);
+
+    // Fallback: scan visible text nodes and likely subtitle elements.
     const all = Array.from(document.querySelectorAll('body *'));
     for (const el of all) {
       try {
-        if (!isVisible(el)) continue;
-        // skip media controls and scripts
-        if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.children.length > 5) continue;
-        const text = el.innerText || el.textContent || '';
-        if (!text) continue;
-        const len = text.trim().length;
-        const rect = el.getBoundingClientRect();
-        // likely subtitle: short text, near bottom of viewport
-        if (len > 0 && len < 400 && rect.top > (window.innerHeight * 0.4)) {
+        if (isLikelySubtitleElement(el)) {
           found.add(el);
         }
       } catch (e) { /* ignore inaccessibles */ }
     }
-    return Array.from(found).filter(isVisible);
+    const candidates = Array.from(found).filter(isVisible);
+    if (!candidates.length) {
+      log('CleanMute: no subtitle candidates found');
+    }
+    return candidates;
   }
 
   function scanAndProcess() {

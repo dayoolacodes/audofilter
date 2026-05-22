@@ -158,47 +158,70 @@ if (window.__cleanMuteLoaded) {
     return (video && video.currentSrc ? video.currentSrc : '') + '::' + (track && track.language ? track.language : '') + '::' + cue.startTime + '::' + cue.text;
   }
 
+  const TEXT_TRACK_LOOKAHEAD_MS = 12000;
+
+  function isBlockedCueText(text) {
+    const lower = (text || '').toString().toLowerCase();
+    for (const w of settings.blockedWords || []) {
+      if (!w) continue;
+      const regex = new RegExp('\\b' + escapeRegExp(w.trim()) + '\\b', 'i');
+      if (regex.test(lower)) return w;
+    }
+    return null;
+  }
+
+  function scheduleCueMute(video, track, cue, blockedWord) {
+    const key = cueKeyFor(cue, track, video);
+    if (scheduledCueTimers.has(key)) return;
+
+    const nowMs = video.currentTime * 1000;
+    const cueStartMs = cue.startTime * 1000;
+    const msUntilStart = cueStartMs - nowMs - PRE_MUTE_LEAD_MS;
+    const schedule = Math.max(0, msUntilStart);
+    log('Scheduling pre-mute for blocked cue', blockedWord, 'start in', msUntilStart, 'ms', 'key', key);
+
+    const toId = setTimeout(() => {
+      try {
+        muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, 'textTrack:' + blockedWord);
+      } catch (e) {
+        log('Error during scheduled pre-mute', e);
+      }
+      scheduledCueTimers.delete(key);
+    }, schedule);
+
+    scheduledCueTimers.set(key, toId);
+    setTimeout(() => {
+      if (scheduledCueTimers.has(key)) {
+        clearTimeout(scheduledCueTimers.get(key));
+        scheduledCueTimers.delete(key);
+      }
+    }, (cue.duration || 5000) + 10000);
+  }
+
+  function scanTrackForBlockedCues(video, track) {
+    if (!track || !track.cues || !video) return;
+    const nowMs = video.currentTime * 1000;
+    const maxMs = nowMs + TEXT_TRACK_LOOKAHEAD_MS;
+    const cues = Array.from(track.cues || []);
+    for (const cue of cues) {
+      if (!cue || !cue.text) continue;
+      const cueStartMs = cue.startTime * 1000;
+      const cueEndMs = cue.endTime * 1000;
+      if (cueEndMs < nowMs - 500) continue;
+      if (cueStartMs > maxMs) continue;
+
+      const blockedWord = isBlockedCueText(cue.text);
+      if (!blockedWord) continue;
+      scheduleCueMute(video, track, cue, blockedWord);
+    }
+  }
+
   function handleTrackCueChange(video, track) {
     try {
-      const nowMs = video.currentTime * 1000;
-      const cues = track.cues ? Array.from(track.cues) : [];
-      for (const cue of cues) {
-        if (!cue || !cue.text) continue;
-        const text = (cue.text || '').toString().toLowerCase();
-        const cueStartMs = cue.startTime * 1000;
-        const cueEndMs = cue.endTime * 1000;
-        if (cueEndMs < nowMs - 1000) continue; // skip cues that finished far in the past
-
-        for (const w of settings.blockedWords || []) {
-          if (!w) continue;
-          const regex = new RegExp('\\b' + escapeRegExp(w) + '\\b', 'i');
-          if (!regex.test(text)) continue;
-
-          const key = cueKeyFor(cue, track, video);
-          if (scheduledCueTimers.has(key)) break; // already scheduled for this cue
-
-          const msUntilStart = cueStartMs - nowMs - PRE_MUTE_LEAD_MS;
-          const schedule = Math.max(0, msUntilStart);
-          log('TextTrack match for', w, 'cue start in', msUntilStart, 'ms, scheduling mute with key', key);
-          const toId = setTimeout(() => {
-            try {
-              muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, 'textTrack:' + w);
-            } catch (e) { log('Error during scheduled pre-mute', e); }
-            scheduledCueTimers.delete(key);
-          }, schedule);
-          scheduledCueTimers.set(key, toId);
-
-          setTimeout(() => {
-            if (scheduledCueTimers.has(key)) {
-              clearTimeout(scheduledCueTimers.get(key));
-              scheduledCueTimers.delete(key);
-            }
-          }, (cue.duration || 5000) + 10000);
-
-          break;
-        }
-      }
-    } catch (e) { log('handleTrackCueChange error', e); }
+      scanTrackForBlockedCues(video, track);
+    } catch (e) {
+      log('handleTrackCueChange error', e);
+    }
   }
 
   function attachTextTrackHandlers(video) {
@@ -212,9 +235,15 @@ if (window.__cleanMuteLoaded) {
         attachedTracks.add(track);
         log('Attached cuechange listener to textTrack', track.language || 'unknown');
       } catch (e) {
-        // some tracks may not support addEventListener in older browsers; fallback to oncuechange
-        try { track.oncuechange = listener; attachedTracks.add(track); log('Attached oncuechange fallback'); } catch (er) { log('Could not attach to textTrack', er); }
+        try {
+          track.oncuechange = listener;
+          attachedTracks.add(track);
+          log('Attached oncuechange fallback');
+        } catch (er) {
+          log('Could not attach to textTrack', er);
+        }
       }
+      scanTrackForBlockedCues(video, track);
     }
   }
 
@@ -269,14 +298,16 @@ if (window.__cleanMuteLoaded) {
     const text = (el.innerText || el.textContent || '').trim();
     if (!text) return false;
     const len = text.length;
-    if (len > 400 || len < 1) return false;
+    const lines = text.split(/\r?\n/).filter(Boolean).length;
+    if (len > 180 || len < 1 || lines > 3) return false;
     const rect = el.getBoundingClientRect();
     if (rect.width < 20 || rect.height < 10) return false;
     const role = el.getAttribute && (el.getAttribute('role') || '').toLowerCase();
     if (role === 'status' || role === 'alert' || role === 'log') return true;
     const className = (el.className || '').toString().toLowerCase();
     if (className.includes('subtitle') || className.includes('caption') || className.includes('captions') || className.includes('timedtext')) return true;
-    if (rect.top > window.innerHeight * 0.5 && rect.bottom > window.innerHeight * 0.7) return true;
+    const bottomCenter = rect.top + rect.height / 2;
+    if (bottomCenter > window.innerHeight * 0.7 && rect.bottom > window.innerHeight * 0.85) return true;
     return false;
   }
 
@@ -295,7 +326,7 @@ if (window.__cleanMuteLoaded) {
         } catch (e) { /* ignore inaccessibles */ }
       }
     }
-    const candidates = Array.from(found).filter(isVisible);
+    const candidates = Array.from(found).filter(el => isVisible(el) && isLikelySubtitleElement(el));
     if (!candidates.length) {
       log('CleanMute: no subtitle candidates found');
     }

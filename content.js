@@ -17,6 +17,7 @@ if (window.__cleanMuteLoaded) {
       'damn','damned','damning',
       'hell','hells','hellish',
       'ass','asses','asshole','assholes','assfuck','assfucked','assfucker','assfucking','asswipe',
+      'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking',
       'crap','crappy','crapping','craps',
       'piss','pissed','pissing','pissers',
       'motherfucker','motherfucking',
@@ -159,38 +160,42 @@ if (window.__cleanMuteLoaded) {
 
   function handleTrackCueChange(video, track) {
     try {
-      const active = track.activeCues || [];
-      for (const cue of active) {
-        const txt = (cue.text || '').toLowerCase();
+      const nowMs = video.currentTime * 1000;
+      const cues = track.cues ? Array.from(track.cues) : [];
+      for (const cue of cues) {
+        if (!cue || !cue.text) continue;
+        const text = (cue.text || '').toString().toLowerCase();
+        const cueStartMs = cue.startTime * 1000;
+        const cueEndMs = cue.endTime * 1000;
+        if (cueEndMs < nowMs - 1000) continue; // skip cues that finished far in the past
+
         for (const w of settings.blockedWords || []) {
           if (!w) continue;
           const regex = new RegExp('\\b' + escapeRegExp(w) + '\\b', 'i');
-          if (regex.test(txt)) {
-            const key = cueKeyFor(cue, track, video);
-            if (scheduledCueTimers.has(key)) continue; // already scheduled
-            const nowMs = video.currentTime * 1000;
-            const cueStartMs = cue.startTime * 1000;
-            const msUntilStart = cueStartMs - nowMs - PRE_MUTE_LEAD_MS;
-            const schedule = Math.max(0, msUntilStart);
-            log('TextTrack match for', w, 'cue start in', msUntilStart, 'ms, scheduling mute with key', key);
-            const toId = setTimeout(() => {
-              try {
-                // mute for configured duration
-                muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, 'textTrack:' + w);
-              } catch (e) { log('Error during scheduled pre-mute', e); }
+          if (!regex.test(text)) continue;
+
+          const key = cueKeyFor(cue, track, video);
+          if (scheduledCueTimers.has(key)) break; // already scheduled for this cue
+
+          const msUntilStart = cueStartMs - nowMs - PRE_MUTE_LEAD_MS;
+          const schedule = Math.max(0, msUntilStart);
+          log('TextTrack match for', w, 'cue start in', msUntilStart, 'ms, scheduling mute with key', key);
+          const toId = setTimeout(() => {
+            try {
+              muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, 'textTrack:' + w);
+            } catch (e) { log('Error during scheduled pre-mute', e); }
+            scheduledCueTimers.delete(key);
+          }, schedule);
+          scheduledCueTimers.set(key, toId);
+
+          setTimeout(() => {
+            if (scheduledCueTimers.has(key)) {
+              clearTimeout(scheduledCueTimers.get(key));
               scheduledCueTimers.delete(key);
-            }, schedule);
-            scheduledCueTimers.set(key, toId);
-            // also set a cleanup in case cue ends without firing (longer than cue duration)
-            const cleanupId = setTimeout(() => {
-              if (scheduledCueTimers.has(key)) {
-                clearTimeout(scheduledCueTimers.get(key));
-                scheduledCueTimers.delete(key);
-              }
-            }, (cue.duration || 5000) + 10000);
-            // no need to track cleanupId separately for now
-            break;
-          }
+            }
+          }, (cue.duration || 5000) + 10000);
+
+          break;
         }
       }
     } catch (e) { log('handleTrackCueChange error', e); }
@@ -408,7 +413,7 @@ if (window.__cleanMuteLoaded) {
 
   function startDemoCycler() {
     if (demoInterval) return;
-    const samples = ['This is a demo line.', 'Contains fuck as blocked word.', 'Another clean line.'];
+    const samples = ['This is a demo line.', 'Another clean line.'];
     let i = 0;
     createDemoSubtitle(samples[0]);
     demoInterval = setInterval(() => {

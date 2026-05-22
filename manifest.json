@@ -27,6 +27,7 @@
       "run_at": "document_idle"
     }
   ]
-  "icons": {
+  ,"icons": {
     "48": "icons/icon48.svg"
   }
+}

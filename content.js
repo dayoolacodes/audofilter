@@ -36,7 +36,7 @@ if (window.__cleanMuteLoaded) {
   };
 
   let settings = {};
-  let debounceMap = new Map(); // word -> lastTriggeredTime
+  let debounceMap = new Map(); // element-word-text -> lastTriggeredTime
   let currentMuteTimers = new Map(); // video -> { restoreId, prevMuted, expiresAt }
   let originalTextStore = new WeakMap(); // element -> originalText
   let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
@@ -309,42 +309,45 @@ if (window.__cleanMuteLoaded) {
         const wTrim = w.trim();
         if (!wTrim) continue;
         const regex = new RegExp('\\b' + escapeRegExp(wTrim) + '\\b', 'i');
-        if (regex.test(lower)) {
-          const last = debounceMap.get(wTrim) || 0;
-          if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) {
-            // debounced
-            continue;
-          }
-          debounceMap.set(wTrim, now());
-          log('Detected blocked word', wTrim, 'in text:', text);
-          // perform mute + optional censorship
-          const video = findLargestVisibleVideo();
-          if (video) {
-            muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, wTrim);
-          } else {
-            log('No video found to mute');
-          }
-          if (settings.censor) {
-            try {
-              if (!originalTextStore.has(el)) {
-                originalTextStore.set(el, el.innerHTML);
-              }
-              el.innerHTML = replaceBlockedInHtml(el.innerHTML, blocked);
-              // restore after mute duration
-              setTimeout(() => {
-                try {
-                  const orig = originalTextStore.get(el);
-                  if (orig !== undefined) {
-                    el.innerHTML = orig;
-                    originalTextStore.delete(el);
-                  }
-                } catch (e) { log('Error restoring original subtitle', e); }
-              }, settings.muteDuration || DEFAULTS.muteDuration);
-            } catch (e) { log('Error censoring subtitle', e); }
-          }
-          // once we matched a blocked word in this element, don't check other words for same element in this scan
-          break;
+        if (!regex.test(lower)) continue;
+
+        const matchKey = `${wTrim.toLowerCase()}::${lower}`;
+        const last = debounceMap.get(matchKey) || 0;
+        if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) {
+          // debounced for this exact subtitle element + word + text
+          continue;
         }
+
+        debounceMap.set(matchKey, now());
+        log('Detected blocked word', wTrim, 'in text:', text);
+
+        const video = findLargestVisibleVideo();
+        if (video) {
+          muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, wTrim);
+        } else {
+          log('No video found to mute');
+        }
+
+        if (settings.censor) {
+          try {
+            if (!originalTextStore.has(el)) {
+              originalTextStore.set(el, el.innerHTML);
+            }
+            el.innerHTML = replaceBlockedInHtml(el.innerHTML, blocked);
+            setTimeout(() => {
+              try {
+                const orig = originalTextStore.get(el);
+                if (orig !== undefined) {
+                  el.innerHTML = orig;
+                  originalTextStore.delete(el);
+                }
+              } catch (e) { log('Error restoring original subtitle', e); }
+            }, settings.muteDuration || DEFAULTS.muteDuration);
+          } catch (e) { log('Error censoring subtitle', e); }
+        }
+
+        // once we matched a blocked word in this element, don't check other words for same element in this scan
+        break;
       }
     }
   }

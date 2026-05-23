@@ -58,7 +58,25 @@ function setStatus(text) {
   el.textContent = text || '';
 }
 
+function checkMode() {
+  chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
+    if (!tabs || !tabs[0]) return;
+    chrome.tabs.sendMessage(tabs[0].id, {action:'getStatus'}, (resp) => {
+      if (chrome.runtime.lastError || !resp) {
+        setStatus('Not active on this page');
+        return;
+      }
+      if (resp.mode === 'subtitle-file') {
+        setStatus('Mode: Subtitle file (precise) — ' + resp.mutePoints + ' mute points');
+      } else {
+        setStatus('Mode: DOM scan (fallback)');
+      }
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   load();
   $('saveBtn').addEventListener('click', save);
+  setTimeout(checkMode, 500);
 });

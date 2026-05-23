@@ -419,6 +419,13 @@ if (window.__cleanMuteLoaded) {
   // ---- Message handling ----
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || !msg.action) return;
+    if (msg.action === 'getStatus') {
+      sendResponse({
+        mode: subtitleIntercepted ? 'subtitle-file' : 'dom-scan',
+        mutePoints: allMutePoints.length
+      });
+      return;
+    }
     if (msg.action === 'reloadSettings') {
       loadSettings(() => {
         // Reprocess intercepted subtitles with new blocked words

@@ -3,7 +3,7 @@
   "name": "CleanMute",
   "version": "1.0.0",
   "description": "Mute and optionally censor subtitles when blocked words appear on Netflix and Prime Video.",
-  "permissions": ["storage", "scripting", "activeTab", "tabs", "tabCapture", "offscreen"],
+  "permissions": ["storage", "scripting", "activeTab", "tabs"],
   "host_permissions": [
     "*://*.netflix.com/*",
     "*://*.primevideo.com/*",

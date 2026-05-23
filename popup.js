@@ -1,4 +1,4 @@
-// popup.js — manage UI, settings, and precise mute control
+// popup.js — manage UI and settings
 const DEFAULTS = {
   enabled: true,
   blockedWords: [
@@ -50,10 +50,6 @@ function save() {
         void chrome.runtime.lastError;
       });
     });
-    // Also update offscreen blocked words if running
-    chrome.runtime.sendMessage({action: 'updateBlockedWords', blockedWords: blocked}, () => {
-      void chrome.runtime.lastError;
-    });
   });
 }
 
@@ -62,32 +58,7 @@ function setStatus(text) {
   el.textContent = text || '';
 }
 
-function startPreciseMute() {
-  chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
-    if (!tabs || !tabs[0]) { setStatus('No active tab'); return; }
-    chrome.runtime.sendMessage({action: 'startPreciseMode', tabId: tabs[0].id}, (resp) => {
-      if (chrome.runtime.lastError) {
-        setStatus('Error: ' + chrome.runtime.lastError.message);
-      } else {
-        setStatus('Precise mute activated — audio delayed ~400ms');
-      }
-    });
-  });
-}
-
-function stopPreciseMute() {
-  chrome.runtime.sendMessage({action: 'stopPreciseMode'}, (resp) => {
-    if (chrome.runtime.lastError) {
-      setStatus('Error: ' + chrome.runtime.lastError.message);
-    } else {
-      setStatus('Precise mute stopped');
-    }
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   load();
   $('saveBtn').addEventListener('click', save);
-  $('preciseMuteBtn').addEventListener('click', startPreciseMute);
-  $('stopPreciseBtn').addEventListener('click', stopPreciseMute);
 });

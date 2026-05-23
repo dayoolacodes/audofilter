@@ -38,9 +38,8 @@ function save() {
     // notify content script to reload settings (if present)
     chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
       if (!tabs || !tabs[0]) return;
-      chrome.tabs.sendMessage(tabs[0].id, {action:'reloadSettings'}, (resp) => {
-        // might fail if content script not injected on this page — that's okay
-        // reloadSettings sent
+      chrome.tabs.sendMessage(tabs[0].id, {action:'reloadSettings'}, () => {
+        void chrome.runtime.lastError;
       });
     });
   });

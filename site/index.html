@@ -173,7 +173,12 @@
     }
     .sim-scene-bg {
       position: absolute; inset: 0;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+      background: #000;
+    }
+    .sim-scene-bg video {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      opacity: 0.85;
     }
     .sim-subtitle {
       position: absolute;
@@ -307,7 +312,11 @@
     <div class="demo-player">
       <div class="sim-player" id="simPlayer">
         <div class="sim-scene">
-          <div class="sim-scene-bg"></div>
+          <div class="sim-scene-bg">
+            <video muted loop playsinline autoplay>
+              <source src="https://cdn.coverr.co/videos/coverr-two-friends-talking-in-a-cafe-1584/1080p.mp4" type="video/mp4">
+            </video>
+          </div>
           <div class="sim-subtitle" id="simSubtitle"></div>
           <div class="sim-mute-badge" id="simBadge">&#128263; MUTED</div>
           <div class="sim-controls">

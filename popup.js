@@ -1,4 +1,4 @@
-// popup.js — manage UI, settings, and test injection
+// popup.js — manage UI, settings, and precise mute control
 const DEFAULTS = {
   enabled: true,
   blockedWords: [
@@ -18,7 +18,6 @@ const DEFAULTS = {
     'bitch','bitches'
   ],
   muteDuration: 1500,
-  censor: true,
   testMode: false,
   preMuteLeadMs: 250
 };
@@ -30,7 +29,6 @@ function load() {
     $('enableFilter').checked = items.enabled;
     $('blockedWords').value = (items.blockedWords || []).join('\n');
     $('muteDuration').value = items.muteDuration || DEFAULTS.muteDuration;
-    $('censorToggle').checked = items.censor;
     $('preMuteLead').value = items.preMuteLeadMs || DEFAULTS.preMuteLeadMs;
     setStatus('Settings loaded');
   });
@@ -42,17 +40,19 @@ function save() {
     enabled: $('enableFilter').checked,
     blockedWords: blocked,
     muteDuration: parseInt($('muteDuration').value,10) || DEFAULTS.muteDuration,
-    censor: $('censorToggle').checked,
     preMuteLeadMs: parseInt($('preMuteLead').value,10) || DEFAULTS.preMuteLeadMs
   };
   chrome.storage.sync.set(data, () => {
     setStatus('Saved');
-    // notify content script to reload settings (if present)
     chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
       if (!tabs || !tabs[0]) return;
       chrome.tabs.sendMessage(tabs[0].id, {action:'reloadSettings'}, () => {
         void chrome.runtime.lastError;
       });
+    });
+    // Also update offscreen blocked words if running
+    chrome.runtime.sendMessage({action: 'updateBlockedWords', blockedWords: blocked}, () => {
+      void chrome.runtime.lastError;
     });
   });
 }
@@ -62,46 +62,32 @@ function setStatus(text) {
   el.textContent = text || '';
 }
 
-function injectDemo() {
-  // If content script is already present on this tab, ask it to create demo.
+function startPreciseMute() {
   chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
-    if (!tabs || !tabs[0]) return;
-    const tabId = tabs[0].id;
-    // try sendMessage first
-    chrome.tabs.sendMessage(tabId, {action:'createDemo'}, (resp) => {
+    if (!tabs || !tabs[0]) { setStatus('No active tab'); return; }
+    chrome.runtime.sendMessage({action: 'startPreciseMode', tabId: tabs[0].id}, (resp) => {
       if (chrome.runtime.lastError) {
-        // content script not present — inject it programmatically then message
-        // content script not present, injecting
-        chrome.scripting.executeScript({
-          target: {tabId},
-          files: ['content.js']
-        }, () => {
-          // after injection, ask it to create demo
-          chrome.tabs.sendMessage(tabId, {action:'createDemo'}, () => {
-            setStatus('Demo injected');
-          });
-        });
+        setStatus('Error: ' + chrome.runtime.lastError.message);
       } else {
-        setStatus('Demo requested');
+        setStatus('Precise mute activated — audio delayed ~400ms');
       }
     });
   });
 }
 
-function stopDemo() {
-  chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
-    if (!tabs || !tabs[0]) return;
-    chrome.tabs.sendMessage(tabs[0].id, {action:'stopDemo'}, (resp) => {
-      if (chrome.runtime.lastError) {
-        setStatus('No demo running or content script not present');
-      } else setStatus('Stopped demo');
-    });
+function stopPreciseMute() {
+  chrome.runtime.sendMessage({action: 'stopPreciseMode'}, (resp) => {
+    if (chrome.runtime.lastError) {
+      setStatus('Error: ' + chrome.runtime.lastError.message);
+    } else {
+      setStatus('Precise mute stopped');
+    }
   });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   load();
   $('saveBtn').addEventListener('click', save);
-  $('testBtn').addEventListener('click', injectDemo);
-  $('stopTestBtn').addEventListener('click', stopDemo);
+  $('preciseMuteBtn').addEventListener('click', startPreciseMute);
+  $('stopPreciseBtn').addEventListener('click', stopPreciseMute);
 });

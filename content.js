@@ -22,8 +22,7 @@ if (window.__cleanMuteLoaded) {
 
   let settings = {};
   let debounceMap = new Map(); // element-word-text -> lastTriggeredTime
-  let currentMuteTimers = new Map(); // video -> { restoreId, prevVolume, expiresAt }
-  let originalTextStore = new WeakMap(); // element -> originalText
+  let tabMuteActive = false;
   let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
   let attachedTracks = new WeakSet(); // textTrack -> attached flag
   let subtitleElementIds = new WeakMap(); // element -> unique id
@@ -33,10 +32,6 @@ if (window.__cleanMuteLoaded) {
      Utility functions
      ================ */
   function log(...args) { /* silent */ }
-
-  function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
 
   function now() { return Date.now(); }
 
@@ -66,125 +61,17 @@ if (window.__cleanMuteLoaded) {
     return true;
   }
 
-  // Choose the largest visible playing video element on the page
-  function findLargestVisibleVideo() {
-    const videos = Array.from(document.querySelectorAll('video')).filter(isVisible);
-    if (videos.length === 0) return null;
-    // Prefer playing videos
-    const playing = videos.filter(v => !v.paused && !v.ended);
-    const candidates = playing.length ? playing : videos;
-    let best = null;
-    let bestArea = 0;
-    for (const v of candidates) {
-      const r = v.getBoundingClientRect();
-      const area = Math.max(0, r.width) * Math.max(0, r.height);
-      if (area > bestArea) {
-        bestArea = area;
-        best = v;
-      }
-    }
-    return best;
-  }
-
-  // Mask a blocked word preserving length
-  function maskWord(word) {
-    return '*'.repeat(word.length);
-  }
-
-  function replaceBlockedInHtml(html, blockedList) {
-    let out = html;
-    for (const w of blockedList) {
-      const regex = new RegExp('\\b' + escapeRegExp(w) + '\\b', 'gi');
-      out = out.replace(regex, (m) => maskWord(m));
-    }
-    return out;
-  }
-
   /* =========================
-     Muting / restoration logic
-     Overrides the volume property on the video element so that:
-     - The real volume is set to 0 (actually silent)
-     - The getter returns the fake (original) volume to fool Amazon's player
-     - volumechange events are suppressed during our changes
+     Muting logic — uses chrome.tabs API via background script
+     to mute the tab. No video element is touched at all.
      ========================= */
-  let hooked = new WeakSet();
-  let fakeVolume = new WeakMap(); // video -> volume Amazon should see
-
-  function hookVideoElement(video) {
-    if (hooked.has(video)) return;
-    hooked.add(video);
-
-    const desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume');
-    const realSet = desc.set;
-    const realGet = desc.get;
-
-    Object.defineProperty(video, 'volume', {
-      get() {
-        // If we're faking, return what Amazon expects
-        if (fakeVolume.has(video)) return fakeVolume.get(video);
-        return realGet.call(video);
-      },
-      set(v) {
-        // If we're faking, update the fake value but don't change real volume
-        if (fakeVolume.has(video)) {
-          fakeVolume.set(video, v);
-          return;
-        }
-        realSet.call(video, v);
-      },
-      configurable: true
-    });
-
-    // Also suppress volumechange events during our muting
-    video.addEventListener('volumechange', (e) => {
-      if (fakeVolume.has(video)) {
-        e.stopImmediatePropagation();
-      }
-    }, true);
-  }
-
-  function muteVideoForDuration(video, duration, reason) {
-    if (!video) return;
+  function muteTabForDuration(duration, reason) {
     try {
-      hookVideoElement(video);
-      const desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume');
-      const realSet = desc.set;
-      const realGet = desc.get;
-
-      const nowMs = Date.now();
-      const existing = currentMuteTimers.get(video);
-      let remainingMs = 0;
-      if (existing && existing.expiresAt) {
-        remainingMs = Math.max(0, existing.expiresAt - nowMs);
-      }
-      const effectiveDuration = Math.max(duration, remainingMs);
-      log('Muting video for', duration, 'ms — reason:', reason);
-      if (existing) {
-        clearTimeout(existing.restoreId);
-        currentMuteTimers.delete(video);
-      }
-
-      // Store the current real volume as the fake, then silence for real
-      if (!fakeVolume.has(video)) {
-        fakeVolume.set(video, realGet.call(video));
-      }
-      realSet.call(video, 0);
-
-      const expiresAt = nowMs + effectiveDuration;
-      const restoreId = setTimeout(() => {
-        try {
-          const restore = fakeVolume.get(video) || 1;
-          fakeVolume.delete(video);
-          realSet.call(video, restore);
-          log('Restored volume');
-        } catch (e) {
-          log('Error restoring volume', e);
-        }
-        currentMuteTimers.delete(video);
-      }, effectiveDuration);
-      currentMuteTimers.set(video, { restoreId, expiresAt });
+      chrome.runtime.sendMessage({ action: 'muteTab', duration }, () => {
+        void chrome.runtime.lastError;
+      });
     } catch (e) {
-      log('Error muting video', e);
+      log('Error requesting tab mute', e);
     }
   }
 
@@ -237,7 +124,7 @@ if (window.__cleanMuteLoaded) {
 
     const toId = setTimeout(() => {
       try {
-        muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, 'textTrack:' + blockedWord);
+        muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, 'textTrack:' + blockedWord);
       } catch (e) {
         log('Error during scheduled pre-mute', e);
       }
@@ -414,27 +301,13 @@ if (window.__cleanMuteLoaded) {
         debounceMap.set(matchKey, now());
         log('Detected blocked word', wTrim, 'in text:', text);
 
-        const video = findLargestVisibleVideo();
-        if (video) {
-          muteVideoForDuration(video, settings.muteDuration || DEFAULTS.muteDuration, wTrim);
-        } else {
-          log('No video found to mute');
-        }
+        muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, wTrim);
 
         if (settings.censor) {
           try {
-            if (!originalTextStore.has(el)) {
-              originalTextStore.set(el, el.innerHTML);
-            }
-            el.innerHTML = replaceBlockedInHtml(el.innerHTML, blocked);
+            el.style.opacity = '0';
             setTimeout(() => {
-              try {
-                const orig = originalTextStore.get(el);
-                if (orig !== undefined) {
-                  el.innerHTML = orig;
-                  originalTextStore.delete(el);
-                }
-              } catch (e) { log('Error restoring original subtitle', e); }
+              try { el.style.opacity = ''; } catch (e) {}
             }, settings.muteDuration || DEFAULTS.muteDuration);
           } catch (e) { log('Error censoring subtitle', e); }
         }

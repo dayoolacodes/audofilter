@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "CleanMute",
   "version": "1.0.0",
-  "description": "Automatically mutes audio when profanity appears in subtitles. Works on YouTube, Netflix, Prime Video, and any site with video subtitles.",
+  "description": "Automatically mutes audio when profanity appears in video subtitles. Works on any website.",
   "permissions": ["storage", "scripting", "activeTab", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": {

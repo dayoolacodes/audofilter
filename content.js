@@ -22,7 +22,8 @@ if (window.__cleanMuteLoaded) {
 
   let settings = {};
   let debounceMap = new Map(); // element-word-text -> lastTriggeredTime
-  let currentMuteTimers = new Map(); // video -> { restoreId, prevMuted, expiresAt }
+  let currentMuteTimers = new Map(); // video -> { restoreId, expiresAt }
+  let audioContexts = new WeakMap(); // video -> { ctx, gain }
   let originalTextStore = new WeakMap(); // element -> originalText
   let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
   let attachedTracks = new WeakSet(); // textTrack -> attached flag
@@ -102,39 +103,56 @@ if (window.__cleanMuteLoaded) {
 
   /* =========================
      Muting / restoration logic
+     Uses Web Audio API GainNode to silence audio without touching video.muted,
+     which avoids triggering Amazon's DRM pause detection.
      ========================= */
+  function getOrCreateAudioContext(video) {
+    if (audioContexts.has(video)) return audioContexts.get(video);
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaElementSource(video);
+      const gain = ctx.createGain();
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      gain.gain.value = 1;
+      audioContexts.set(video, { ctx, gain });
+      return { ctx, gain };
+    } catch (e) {
+      log('Could not create AudioContext', e);
+      return null;
+    }
+  }
+
   function muteVideoForDuration(video, duration, reason) {
     if (!video) return;
     try {
+      const ac = getOrCreateAudioContext(video);
+      if (!ac) return;
+      const { gain } = ac;
       const nowMs = Date.now();
       const existing = currentMuteTimers.get(video);
-      const prevMuted = existing ? existing.prevMuted : video.muted;
       let remainingMs = 0;
       if (existing && existing.expiresAt) {
         remainingMs = Math.max(0, existing.expiresAt - nowMs);
       }
       const effectiveDuration = Math.max(duration, remainingMs);
-      log('Muting video for', duration, 'ms — reason:', reason, 'prevMuted:', prevMuted, 'remainingMs:', remainingMs);
+      log('Muting video for', duration, 'ms — reason:', reason);
       if (existing) {
         clearTimeout(existing.restoreId);
         currentMuteTimers.delete(video);
       }
-      video.muted = true;
+      gain.gain.value = 0;
       const expiresAt = nowMs + effectiveDuration;
       const restoreId = setTimeout(() => {
         try {
-          if (!prevMuted) {
-            video.muted = false;
-            log('Restored video mute to false');
-          } else {
-            log('Video was previously muted; leaving muted state as-is');
-          }
+          gain.gain.value = 1;
+          log('Restored audio gain');
         } catch (e) {
-          log('Error restoring video mute', e);
+          log('Error restoring audio gain', e);
         }
         currentMuteTimers.delete(video);
       }, effectiveDuration);
-      currentMuteTimers.set(video, { restoreId, prevMuted, expiresAt });
+      currentMuteTimers.set(video, { restoreId, expiresAt });
     } catch (e) {
       log('Error muting video', e);
     }

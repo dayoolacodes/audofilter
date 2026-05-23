@@ -5,6 +5,7 @@
   "description": "Mute and optionally censor subtitles when blocked words appear on Netflix and Prime Video.",
   "permissions": ["storage", "scripting", "activeTab", "tabs"],
   "host_permissions": [
+    "*://*.youtube.com/*",
     "*://*.netflix.com/*",
     "*://*.primevideo.com/*",
     "*://*.amazon.com/gp/video/*",
@@ -29,6 +30,7 @@
   "content_scripts": [
     {
       "matches": [
+        "*://*.youtube.com/*",
         "*://*.netflix.com/*",
         "*://*.primevideo.com/*",
         "*://*.amazon.com/gp/video/*",

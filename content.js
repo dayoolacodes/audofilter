@@ -22,8 +22,7 @@ if (window.__cleanMuteLoaded) {
 
   let settings = {};
   let debounceMap = new Map(); // element-word-text -> lastTriggeredTime
-  let currentMuteTimers = new Map(); // video -> { restoreId, expiresAt }
-  let audioContexts = new WeakMap(); // video -> { ctx, gain }
+  let currentMuteTimers = new Map(); // video -> { restoreId, prevVolume, expiresAt }
   let originalTextStore = new WeakMap(); // element -> originalText
   let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
   let attachedTracks = new WeakSet(); // textTrack -> attached flag
@@ -103,34 +102,15 @@ if (window.__cleanMuteLoaded) {
 
   /* =========================
      Muting / restoration logic
-     Uses Web Audio API GainNode to silence audio without touching video.muted,
+     Uses video.volume = 0 instead of video.muted or Web Audio API,
      which avoids triggering Amazon's DRM pause detection.
      ========================= */
-  function getOrCreateAudioContext(video) {
-    if (audioContexts.has(video)) return audioContexts.get(video);
-    try {
-      const ctx = new AudioContext();
-      const source = ctx.createMediaElementSource(video);
-      const gain = ctx.createGain();
-      source.connect(gain);
-      gain.connect(ctx.destination);
-      gain.gain.value = 1;
-      audioContexts.set(video, { ctx, gain });
-      return { ctx, gain };
-    } catch (e) {
-      log('Could not create AudioContext', e);
-      return null;
-    }
-  }
-
   function muteVideoForDuration(video, duration, reason) {
     if (!video) return;
     try {
-      const ac = getOrCreateAudioContext(video);
-      if (!ac) return;
-      const { gain } = ac;
       const nowMs = Date.now();
       const existing = currentMuteTimers.get(video);
+      const prevVolume = existing ? existing.prevVolume : video.volume;
       let remainingMs = 0;
       if (existing && existing.expiresAt) {
         remainingMs = Math.max(0, existing.expiresAt - nowMs);
@@ -141,18 +121,18 @@ if (window.__cleanMuteLoaded) {
         clearTimeout(existing.restoreId);
         currentMuteTimers.delete(video);
       }
-      gain.gain.value = 0;
+      video.volume = 0;
       const expiresAt = nowMs + effectiveDuration;
       const restoreId = setTimeout(() => {
         try {
-          gain.gain.value = 1;
-          log('Restored audio gain');
+          video.volume = prevVolume || 1;
+          log('Restored volume');
         } catch (e) {
-          log('Error restoring audio gain', e);
+          log('Error restoring volume', e);
         }
         currentMuteTimers.delete(video);
       }, effectiveDuration);
-      currentMuteTimers.set(video, { restoreId, expiresAt });
+      currentMuteTimers.set(video, { restoreId, prevVolume, expiresAt });
     } catch (e) {
       log('Error muting video', e);
     }

@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="popup.css">
   </head>
   <body>
-    <div class="container">
+    <div class="container" style="position:relative;">
+      <div id="status" class="status" style="position:absolute;top:4px;right:4px;font-size:11px;"></div>
       <h1>CleanMute</h1>
       <label class="row"><input type="checkbox" id="enableFilter"> Enable filtering</label>
 
@@ -23,7 +24,6 @@
       <div class="buttons">
         <button id="saveBtn">Save</button>
       </div>
-      <div id="status" class="status"></div>
     </div>
     <script src="popup.js"></script>
   </body>

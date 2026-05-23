@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AudioFilter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Automatically mutes audio when profanity appears in video subtitles. Works on any website.",
   "permissions": ["storage", "tabs"],
   "host_permissions": [

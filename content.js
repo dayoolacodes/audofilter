@@ -11,8 +11,13 @@ if (window.__cleanMuteLoaded) {
   const DEFAULTS = {
     enabled: true,
     blockedWords: [
-      'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
-      'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking'
+      'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin','fuckface',
+      'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking',
+      'dick','dicks','dickhead','dickheads',
+      'pussy','pussies',
+      'asshole','assholes',
+      'shit','shits','shitting','shitty',
+      'bitch','bitches'
     ],
     muteDuration: 1500,
     censor: true,
@@ -23,6 +28,7 @@ if (window.__cleanMuteLoaded) {
   let settings = {};
   let debounceMap = new Map(); // element-word-text -> lastTriggeredTime
   let tabMuteActive = false;
+  let originalTextStore = new WeakMap(); // element -> originalHTML
   let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
   let attachedTracks = new WeakSet(); // textTrack -> attached flag
   let subtitleElementIds = new WeakMap(); // element -> unique id
@@ -33,7 +39,25 @@ if (window.__cleanMuteLoaded) {
      ================ */
   function log(...args) { /* silent */ }
 
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   function now() { return Date.now(); }
+
+  function maskWord(word) {
+    if (word.length <= 2) return '*'.repeat(word.length);
+    return word[0] + '*'.repeat(word.length - 2) + word[word.length - 1];
+  }
+
+  function replaceBlockedInHtml(html, blockedList) {
+    let out = html;
+    for (const w of blockedList) {
+      const regex = new RegExp('\\b' + escapeRegExp(w) + '\\b', 'gi');
+      out = out.replace(regex, (m) => maskWord(m));
+    }
+    return out;
+  }
 
   function getSubtitleElementId(el) {
     if (!subtitleElementIds.has(el)) {
@@ -305,9 +329,18 @@ if (window.__cleanMuteLoaded) {
 
         if (settings.censor) {
           try {
-            el.style.opacity = '0';
+            if (!originalTextStore.has(el)) {
+              originalTextStore.set(el, el.innerHTML);
+            }
+            el.innerHTML = replaceBlockedInHtml(el.innerHTML, blocked);
             setTimeout(() => {
-              try { el.style.opacity = ''; } catch (e) {}
+              try {
+                const orig = originalTextStore.get(el);
+                if (orig !== undefined) {
+                  el.innerHTML = orig;
+                  originalTextStore.delete(el);
+                }
+              } catch (e) {}
             }, settings.muteDuration || DEFAULTS.muteDuration);
           } catch (e) { log('Error censoring subtitle', e); }
         }

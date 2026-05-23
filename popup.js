@@ -3,7 +3,12 @@ const DEFAULTS = {
   enabled: true,
   blockedWords: [
     'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
-    'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking'
+    'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking',
+    'dick','dicks','dickhead','dickheads',
+    'pussy','pussies',
+    'asshole','assholes',
+    'shit','shits','shitting','shitty',
+    'bitch','bitches'
   ],
   muteDuration: 1500,
   censor: true,

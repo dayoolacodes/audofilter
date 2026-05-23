@@ -102,35 +102,57 @@ if (window.__cleanMuteLoaded) {
 
   /* =========================
      Muting / restoration logic
-     Suppresses volumechange events so Amazon's player doesn't detect
-     our programmatic volume changes and pause/quit.
+     Overrides the volume property on the video element so that:
+     - The real volume is set to 0 (actually silent)
+     - The getter returns the fake (original) volume to fool Amazon's player
+     - volumechange events are suppressed during our changes
      ========================= */
-  let suppressVolumeChange = false;
   let hooked = new WeakSet();
+  let fakeVolume = new WeakMap(); // video -> volume Amazon should see
 
-  function hookVolumeEvents(video) {
+  function hookVideoElement(video) {
     if (hooked.has(video)) return;
     hooked.add(video);
+
+    const desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume');
+    const realSet = desc.set;
+    const realGet = desc.get;
+
+    Object.defineProperty(video, 'volume', {
+      get() {
+        // If we're faking, return what Amazon expects
+        if (fakeVolume.has(video)) return fakeVolume.get(video);
+        return realGet.call(video);
+      },
+      set(v) {
+        // If we're faking, update the fake value but don't change real volume
+        if (fakeVolume.has(video)) {
+          fakeVolume.set(video, v);
+          return;
+        }
+        realSet.call(video, v);
+      },
+      configurable: true
+    });
+
+    // Also suppress volumechange events during our muting
     video.addEventListener('volumechange', (e) => {
-      if (suppressVolumeChange) {
+      if (fakeVolume.has(video)) {
         e.stopImmediatePropagation();
       }
     }, true);
   }
 
-  function setVolumeSilently(video, vol) {
-    suppressVolumeChange = true;
-    video.volume = vol;
-    suppressVolumeChange = false;
-  }
-
   function muteVideoForDuration(video, duration, reason) {
     if (!video) return;
     try {
-      hookVolumeEvents(video);
+      hookVideoElement(video);
+      const desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'volume');
+      const realSet = desc.set;
+      const realGet = desc.get;
+
       const nowMs = Date.now();
       const existing = currentMuteTimers.get(video);
-      const prevVolume = existing ? existing.prevVolume : video.volume;
       let remainingMs = 0;
       if (existing && existing.expiresAt) {
         remainingMs = Math.max(0, existing.expiresAt - nowMs);
@@ -141,18 +163,26 @@ if (window.__cleanMuteLoaded) {
         clearTimeout(existing.restoreId);
         currentMuteTimers.delete(video);
       }
-      setVolumeSilently(video, 0);
+
+      // Store the current real volume as the fake, then silence for real
+      if (!fakeVolume.has(video)) {
+        fakeVolume.set(video, realGet.call(video));
+      }
+      realSet.call(video, 0);
+
       const expiresAt = nowMs + effectiveDuration;
       const restoreId = setTimeout(() => {
         try {
-          setVolumeSilently(video, prevVolume || 1);
+          const restore = fakeVolume.get(video) || 1;
+          fakeVolume.delete(video);
+          realSet.call(video, restore);
           log('Restored volume');
         } catch (e) {
           log('Error restoring volume', e);
         }
         currentMuteTimers.delete(video);
       }, effectiveDuration);
-      currentMuteTimers.set(video, { restoreId, prevVolume, expiresAt });
+      currentMuteTimers.set(video, { restoreId, expiresAt });
     } catch (e) {
       log('Error muting video', e);
     }

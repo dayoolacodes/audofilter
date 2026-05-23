@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "CleanMute",
   "version": "1.0.0",
-  "description": "Mute and optionally censor subtitles when blocked words appear on Netflix and Prime Video.",
+  "description": "Automatically mutes audio when profanity appears in subtitles. Works on YouTube, Netflix, Prime Video, and any site with video subtitles.",
   "permissions": ["storage", "scripting", "activeTab", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": {
@@ -20,6 +20,8 @@
     }
   ]
   ,"icons": {
-    "48": "icons/icon48.png"
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

@@ -373,26 +373,44 @@
     var subtitleEl = document.getElementById('simSubtitle');
     var badge = document.getElementById('simBadge');
 
-    // Real transcript from the video with profanity timestamp
-    // The video auto-censors with [__] but the word is spoken at this time
+    // YouTube CC transcript with profanity detected
     var subs = [
-      [1.4, 6.6, "Hey, we safe in here from doomsday, are", null],
-      [4.8, 8.1, "these walls fortified with anything?", null],
-      [6.6, 11.2, "Those people are animals.", null],
-      [8.1, 12.8, "I just want clean water. Well then they", null],
-      [11.2, 15.4, "can get a fucking job and pay for water", "fucking"],
-      [15.4, 20.1, "like the rest of us. Okay, I like that.", null],
-      [18.3, 21.6, "You want a bleeding-heart types? Well, hey,", null],
-      [20.1, 24.8, "cops kill poor people, poor people kill", null],
-      [21.6, 27.2, "cops. That's the circle of life.", null],
-      [24.8, 28.5, "Hakuna Matata. Easy for the robots", null],
-      [28.5, 34.5, "swimming in your optic canal. Take one in", null],
-      [32.3, 36.0, "an hour. Hey, my TV's broken. I want to", null],
-      [34.5, 38.6, "watch your riots. There's an old one in the", null],
-      [36.0, 39.7, "game room. It's hardwired, it should be", null],
-      [38.6, 47.5, "working. You want me to go out there with the criminals?", null],
-      [39.7, 47.5, "Hakuna Matata, buddy. Oh, that's cute.", null],
+      [1.35, 6.58, "hey we safe in here from doomsday are", null],
+      [4.78, 8.05, "these walls fortified with anything", null],
+      [6.58, 11.17, "those people are animals", null],
+      [8.05, 12.76, "I just want clean water well then they", null],
+      [11.17, 15.4, "can get a fucking job and pay for water", "fucking"],
+      [12.76, 18.28, "like the rest of us okay I like that", null],
+      [15.4, 20.05, "you want a bleeding-heart types well hey", null],
+      [18.28, 21.55, "cops kill poor people poor people kill", null],
+      [20.05, 24.85, "cops that's the circle of life", null],
+      [21.55, 27.22, "Hakuna Matata easy for the robots", null],
+      [24.85, 28.48, "swimming in your optic canal take one in", null],
+      [27.22, 32.32, "an hour and then after that you can go", null],
+      [28.48, 34.51, "all right hey my TV's broken I want to", null],
+      [32.32, 36.01, "watch your riots as an old one in the", null],
+      [34.51, 38.65, "game room it's hardwired it should be", null],
+      [36.01, 39.66, "working huh you want me to go out there", null],
+      [38.65, 47.55, "with the criminals", null],
+      [39.66, 47.55, "Hakuna Matata buddy oh that's cute", null],
     ];
+
+    // Blocked words list — same as the extension
+    var blocked = ['fuck','fucks','fucked','fucker','fuckers','fucking','fuckin','shit','shits','shitty','bullshit','bitch','bitches','asshole','damn','goddamn','dick','pussy','nigga','nigger','motherfucker','motherfucking'];
+
+    // Auto-detect profanity in each subtitle line
+    subs.forEach(function(s) {
+      var lower = s[2].toLowerCase();
+      var words = lower.split(/\s+/);
+      for (var i = 0; i < blocked.length; i++) {
+        for (var j = 0; j < words.length; j++) {
+          if (words[j] === blocked[i] || words[j].indexOf(blocked[i]) !== -1) {
+            s[3] = blocked[i];
+            return;
+          }
+        }
+      }
+    });
 
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('ytplayer', {

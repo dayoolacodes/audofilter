@@ -6,26 +6,18 @@ if (window.__cleanMuteLoaded) {
 
   const DEFAULTS = {
     enabled: true,
-    blockedWords: [
-      'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin','fuckface',
-      'fuckwit','fuckwits','fuckhead','fuckheads','fuckboy','fuckboys',
-      'fuckup','fuckups','fuckall','fuckery','fuckeries',
-      'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking',
-      'clusterfuck','clusterfucks','clusterfucked',
-      'mindfuck','mindfucks','mindfucked',
-      'brainfuck','skullfuck','ratfuck','batfuck',
-      'unfucking','unfucked',
-      'nigga','niggas','nigger','niggers',
-      'dick','dicks','dickhead','dickheads',
-      'pussy','pussies',
-      'asshole','assholes',
-      'shit','shits','shitting','shitty',
-      'bitch','bitches'
-    ],
+    blockedWords: [],
     muteDuration: 1500,
     debounceMs: 2000,
     testMode: false
   };
+
+  function loadDefaultWords() {
+    return fetch(chrome.runtime.getURL('blockedWords.json'))
+      .then(r => r.json())
+      .then(words => { DEFAULTS.blockedWords = words; })
+      .catch(() => {});
+  }
 
   let settings = {};
   let allMutePoints = []; // { timeMs, durationMs, word } — pre-computed from subtitle files
@@ -453,8 +445,10 @@ if (window.__cleanMuteLoaded) {
   });
 
   // ---- Init ----
-  loadSettings(() => {
-    if (settings.enabled) startObserving();
-    setInterval(() => { if (settings.enabled) scanAndProcess(); }, 3000);
+  loadDefaultWords().then(() => {
+    loadSettings(() => {
+      if (settings.enabled) startObserving();
+      setInterval(() => { if (settings.enabled) scanAndProcess(); }, 3000);
+    });
   });
 }

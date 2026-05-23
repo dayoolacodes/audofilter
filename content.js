@@ -30,7 +30,7 @@ if (window.__audioFilterLoaded) {
   let subtitleElementIds = new WeakMap();
   let nextSubtitleElementId = 1;
 
-  function log(...args) { /* silent */ }
+  function log(...args) { console.log('AudioFilter:', ...args); }
   function now() { return Date.now(); }
 
   function loadSettings(callback) {
@@ -395,13 +395,22 @@ if (window.__audioFilterLoaded) {
 
     const found = new Set();
     collectFromRoot(document, found);
-    if (!found.size) {
+
+    // Elements from KNOWN_SELECTORS just need to be visible and have text
+    let candidates = Array.from(found).filter(el => {
+      if (!isVisible(el)) return false;
+      const text = (el.innerText || el.textContent || '').trim();
+      return text.length > 0 && text.length <= 300;
+    });
+
+    // If no known selectors matched, fall back to heuristic scan
+    if (!candidates.length) {
       for (const el of document.querySelectorAll('body *')) {
-        try { if (isLikelySubtitleElement(el)) found.add(el); } catch (e) {}
+        try { if (isLikelySubtitleElement(el)) candidates.push(el); } catch (e) {}
       }
     }
-    const candidates = Array.from(found).filter(el => isVisible(el) && isLikelySubtitleElement(el));
     if (!candidates.length) return;
+    log('Found', candidates.length, 'subtitle candidates');
 
     const blocked = settings.blockedWords || [];
     if (!blocked.length) return;

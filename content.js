@@ -102,12 +102,32 @@ if (window.__cleanMuteLoaded) {
 
   /* =========================
      Muting / restoration logic
-     Uses video.volume = 0 instead of video.muted or Web Audio API,
-     which avoids triggering Amazon's DRM pause detection.
+     Suppresses volumechange events so Amazon's player doesn't detect
+     our programmatic volume changes and pause/quit.
      ========================= */
+  let suppressVolumeChange = false;
+  let hooked = new WeakSet();
+
+  function hookVolumeEvents(video) {
+    if (hooked.has(video)) return;
+    hooked.add(video);
+    video.addEventListener('volumechange', (e) => {
+      if (suppressVolumeChange) {
+        e.stopImmediatePropagation();
+      }
+    }, true);
+  }
+
+  function setVolumeSilently(video, vol) {
+    suppressVolumeChange = true;
+    video.volume = vol;
+    suppressVolumeChange = false;
+  }
+
   function muteVideoForDuration(video, duration, reason) {
     if (!video) return;
     try {
+      hookVolumeEvents(video);
       const nowMs = Date.now();
       const existing = currentMuteTimers.get(video);
       const prevVolume = existing ? existing.prevVolume : video.volume;
@@ -121,11 +141,11 @@ if (window.__cleanMuteLoaded) {
         clearTimeout(existing.restoreId);
         currentMuteTimers.delete(video);
       }
-      video.volume = 0;
+      setVolumeSilently(video, 0);
       const expiresAt = nowMs + effectiveDuration;
       const restoreId = setTimeout(() => {
         try {
-          video.volume = prevVolume || 1;
+          setVolumeSilently(video, prevVolume || 1);
           log('Restored volume');
         } catch (e) {
           log('Error restoring volume', e);

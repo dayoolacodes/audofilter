@@ -1,13 +1,9 @@
-// content.js — detects subtitle changes, mutes video, optional censoring.
-// Guard against double-injection
+// content.js — intercepts subtitle files, parses timing, pre-schedules mutes.
 if (window.__cleanMuteLoaded) {
   // already loaded
 } else {
   window.__cleanMuteLoaded = true;
 
-  /* =====================
-     Configuration & state
-     ===================== */
   const DEFAULTS = {
     enabled: true,
     blockedWords: [
@@ -27,84 +23,46 @@ if (window.__cleanMuteLoaded) {
       'bitch','bitches'
     ],
     muteDuration: 1500,
-    censor: true,
     debounceMs: 2000,
     testMode: false
   };
 
   let settings = {};
-  let debounceMap = new Map(); // element-word-text -> lastTriggeredTime
-  let tabMuteActive = false;
-  let scheduledCueTimers = new Map(); // key -> timeoutId for scheduled pre-mute
-  let attachedTracks = new WeakSet(); // textTrack -> attached flag
-  let subtitleElementIds = new WeakMap(); // element -> unique id
+  let allMutePoints = []; // { timeMs, durationMs, word } — pre-computed from subtitle files
+  let scheduledTimers = new Map(); // key -> timeoutId
+  let lastScheduleTime = 0;
+  let subtitleIntercepted = false;
+
+  // ---- Fallback: DOM-based detection state ----
+  let debounceMap = new Map();
+  let subtitleElementIds = new WeakMap();
   let nextSubtitleElementId = 1;
 
-  /* ================
-     Utility functions
-     ================ */
   function log(...args) { /* silent */ }
-
   function now() { return Date.now(); }
-
-  function getSubtitleElementId(el) {
-    if (!subtitleElementIds.has(el)) {
-      subtitleElementIds.set(el, `cleanmute-el-${nextSubtitleElementId++}`);
-    }
-    return subtitleElementIds.get(el);
-  }
 
   function loadSettings(callback) {
     chrome.storage.sync.get(DEFAULTS, (items) => {
       settings = Object.assign({}, DEFAULTS, items);
-      log('Loaded settings', settings);
       if (callback) callback();
     });
   }
 
-  function isVisible(el) {
-    if (!el || !(el.getBoundingClientRect)) return false;
-    const r = el.getBoundingClientRect();
-    if (r.width === 0 || r.height === 0) return false;
-    if (r.bottom < 0 || r.top > (window.innerHeight || document.documentElement.clientHeight)) return false;
-    // avoid elements off-screen or hidden
-    const style = window.getComputedStyle(el);
-    if (style && (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0')) return false;
-    return true;
-  }
-
-  /* =========================
-     Muting logic — uses chrome.tabs API via background script
-     to mute the tab. No video element is touched at all.
-     ========================= */
   function muteTabForDuration(duration, reason) {
     try {
       chrome.runtime.sendMessage({ action: 'muteTab', duration }, () => {
         void chrome.runtime.lastError;
       });
-    } catch (e) {
-      log('Error requesting tab mute', e);
-    }
+    } catch (e) {}
   }
 
-  /* =============================
-     textTracks / cuechange support
-     Best-effort: attach to video.textTracks and schedule pre-mute
-     ============================= */
-  const PRE_MUTE_LEAD_MS = 250; // mute this many ms before cue.startTime
+  // ==========================
+  // Subtitle file interception
+  // ==========================
 
-  function cueKeyFor(cue, track, video) {
-    // make a reasonably unique key for a cue
-    return (video && video.currentSrc ? video.currentSrc : '') + '::' + (track && track.language ? track.language : '') + '::' + cue.startTime + '::' + cue.text;
-  }
-
-  const TEXT_TRACK_LOOKAHEAD_MS = 12000;
-
-  // Returns { word, index, totalWords } or null
-  function findBlockedWord(text) {
-    const lower = (text || '').toString().toLowerCase();
+  function findBlockedWordInText(text) {
+    const lower = (text || '').toString().toLowerCase().replace(/<[^>]*>/g, '');
     if (!lower) return null;
-    if (lower.indexOf('*') !== -1) return null;
     let tokens = [];
     try {
       tokens = lower.match(/\p{L}+/gu) || [];
@@ -123,315 +81,361 @@ if (window.__cleanMuteLoaded) {
     return null;
   }
 
-  const WORD_PADDING_MS = 150; // padding before and after estimated word time
-
-  function scheduleCueMute(video, track, cue, match) {
-    const key = cueKeyFor(cue, track, video);
-    if (scheduledCueTimers.has(key)) return;
-
-    const cueDurationMs = (cue.endTime - cue.startTime) * 1000;
-    const cueStartMs = cue.startTime * 1000;
-
-    // Estimate when the blocked word is spoken within the cue
-    const wordStartFraction = match.index / match.totalWords;
-    const wordDurationMs = cueDurationMs / match.totalWords;
-    const estimatedWordStartMs = cueStartMs + (wordStartFraction * cueDurationMs) - WORD_PADDING_MS;
-    const muteDuration = wordDurationMs + (WORD_PADDING_MS * 2);
-
-    const nowMs = video.currentTime * 1000;
-    const schedule = Math.max(0, estimatedWordStartMs - nowMs);
-
-    const toId = setTimeout(() => {
-      try {
-        muteTabForDuration(Math.round(muteDuration), 'textTrack:' + match.word);
-      } catch (e) {
-        log('Error during scheduled pre-mute', e);
-      }
-      scheduledCueTimers.delete(key);
-    }, schedule);
-
-    scheduledCueTimers.set(key, toId);
-    setTimeout(() => {
-      if (scheduledCueTimers.has(key)) {
-        clearTimeout(scheduledCueTimers.get(key));
-        scheduledCueTimers.delete(key);
-      }
-    }, cueDurationMs + 10000);
-  }
-
-  function scanTrackForBlockedCues(video, track) {
-    if (!track || !track.cues || !video) return;
-    const nowMs = video.currentTime * 1000;
-    const maxMs = nowMs + TEXT_TRACK_LOOKAHEAD_MS;
-    const cues = Array.from(track.cues || []);
-    for (const cue of cues) {
-      if (!cue || !cue.text) continue;
-      const cueStartMs = cue.startTime * 1000;
-      const cueEndMs = cue.endTime * 1000;
-      if (cueEndMs < nowMs - 500) continue;
-      if (cueStartMs > maxMs) continue;
-
-      const match = findBlockedWord(cue.text);
-      if (!match) continue;
-      scheduleCueMute(video, track, cue, match);
-    }
-  }
-
-  function handleTrackCueChange(video, track) {
+  // Parse TTML (used by Amazon Prime Video)
+  function parseTTML(text) {
+    const cues = [];
     try {
-      scanTrackForBlockedCues(video, track);
-    } catch (e) {
-      log('handleTrackCueChange error', e);
-    }
-  }
-
-  function attachTextTrackHandlers(video) {
-    if (!video || !video.textTracks) return;
-    for (let i = 0; i < video.textTracks.length; i++) {
-      const track = video.textTracks[i];
-      if (!track || attachedTracks.has(track)) continue;
-      const listener = () => handleTrackCueChange(video, track);
-      try {
-        track.addEventListener('cuechange', listener);
-        attachedTracks.add(track);
-        log('Attached cuechange listener to textTrack', track.language || 'unknown');
-      } catch (e) {
-        try {
-          track.oncuechange = listener;
-          attachedTracks.add(track);
-          log('Attached oncuechange fallback');
-        } catch (er) {
-          log('Could not attach to textTrack', er);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/xml');
+      const ps = doc.querySelectorAll('p[begin][end]');
+      for (const p of ps) {
+        const begin = parseTTMLTime(p.getAttribute('begin'));
+        const end = parseTTMLTime(p.getAttribute('end'));
+        const content = p.textContent || '';
+        if (begin !== null && end !== null && content.trim()) {
+          cues.push({ startTime: begin, endTime: end, text: content.trim() });
         }
       }
-      scanTrackForBlockedCues(video, track);
+    } catch (e) {}
+    return cues;
+  }
+
+  function parseTTMLTime(str) {
+    if (!str) return null;
+    // Format: HH:MM:SS.mmm or HH:MM:SS:FF or seconds
+    const parts = str.match(/^(\d+):(\d+):(\d+)[.:](\d+)$/);
+    if (parts) {
+      const h = parseInt(parts[1], 10);
+      const m = parseInt(parts[2], 10);
+      const s = parseInt(parts[3], 10);
+      let ms = parts[4];
+      // If 2 digits, treat as frames (~24fps); if 3 digits, milliseconds
+      if (ms.length <= 2) {
+        ms = Math.round((parseInt(ms, 10) / 24) * 1000);
+      } else {
+        ms = parseInt(ms, 10);
+      }
+      return (h * 3600 + m * 60 + s) * 1000 + ms;
+    }
+    // Try HH:MM:SS format
+    const simple = str.match(/^(\d+):(\d+):(\d+)$/);
+    if (simple) {
+      return (parseInt(simple[1], 10) * 3600 + parseInt(simple[2], 10) * 60 + parseInt(simple[3], 10)) * 1000;
+    }
+    // Try seconds
+    const sec = parseFloat(str);
+    if (!isNaN(sec)) return sec * 1000;
+    return null;
+  }
+
+  // Parse WebVTT
+  function parseWebVTT(text) {
+    const cues = [];
+    try {
+      const blocks = text.split(/\n\n+/);
+      for (const block of blocks) {
+        const lines = block.trim().split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const timeMatch = lines[i].match(/(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/);
+          if (timeMatch) {
+            const startTime = parseVTTTime(timeMatch[1]);
+            const endTime = parseVTTTime(timeMatch[2]);
+            const content = lines.slice(i + 1).join(' ').replace(/<[^>]*>/g, '').trim();
+            if (content) {
+              cues.push({ startTime, endTime, text: content });
+            }
+            break;
+          }
+        }
+      }
+    } catch (e) {}
+    return cues;
+  }
+
+  function parseVTTTime(str) {
+    const p = str.replace(',', '.').match(/(\d+):(\d+):(\d+)\.(\d+)/);
+    if (!p) return 0;
+    return (parseInt(p[1], 10) * 3600 + parseInt(p[2], 10) * 60 + parseInt(p[3], 10)) * 1000 + parseInt(p[4], 10);
+  }
+
+  // Process parsed cues into mute points
+  function processCues(cues) {
+    const points = [];
+    const PADDING_MS = 150;
+    for (const cue of cues) {
+      const match = findBlockedWordInText(cue.text);
+      if (!match) continue;
+
+      const cueDurationMs = cue.endTime - cue.startTime;
+      const wordFraction = match.index / match.totalWords;
+      const wordDuration = cueDurationMs / match.totalWords;
+
+      // Estimate word start time within cue
+      const wordStartMs = cue.startTime + (wordFraction * cueDurationMs) - PADDING_MS;
+      const muteDuration = wordDuration + (PADDING_MS * 2);
+
+      points.push({
+        timeMs: Math.max(0, Math.round(wordStartMs)),
+        durationMs: Math.round(muteDuration),
+        word: match.word
+      });
+    }
+    return points;
+  }
+
+  // Try to detect and parse subtitle content from response text
+  function tryParseSubtitles(responseText, url) {
+    let cues = [];
+    if (responseText.includes('<tt') || responseText.includes('<p begin=')) {
+      cues = parseTTML(responseText);
+    } else if (responseText.includes('WEBVTT') || responseText.includes('-->')) {
+      cues = parseWebVTT(responseText);
+    }
+    if (cues.length > 0) {
+      const points = processCues(cues);
+      if (points.length > 0) {
+        allMutePoints = allMutePoints.concat(points);
+        allMutePoints.sort((a, b) => a.timeMs - b.timeMs);
+        subtitleIntercepted = true;
+      }
     }
   }
 
-  function attachToExistingVideos() {
-    const vids = Array.from(document.querySelectorAll('video'));
-    for (const v of vids) attachTextTrackHandlers(v);
+  // Intercept fetch to capture subtitle file responses
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    const result = originalFetch.apply(this, args);
+    try {
+      const url = (typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : ''));
+      // Subtitle URLs typically contain ttml, vtt, subtitle, caption, timedtext
+      if (/ttml|vtt|subtitle|caption|timedtext/i.test(url)) {
+        result.then(response => {
+          const clone = response.clone();
+          clone.text().then(text => {
+            tryParseSubtitles(text, url);
+          }).catch(() => {});
+        }).catch(() => {});
+      }
+    } catch (e) {}
+    return result;
+  };
+
+  // Intercept XMLHttpRequest too
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  const originalXHRSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+    this.__cleanMuteUrl = url || '';
+    return originalXHROpen.call(this, method, url, ...rest);
+  };
+  XMLHttpRequest.prototype.send = function(...args) {
+    const url = this.__cleanMuteUrl || '';
+    if (/ttml|vtt|subtitle|caption|timedtext/i.test(url)) {
+      this.addEventListener('load', function() {
+        try {
+          if (this.responseText) {
+            tryParseSubtitles(this.responseText, url);
+          }
+        } catch (e) {}
+      });
+    }
+    return originalXHRSend.apply(this, args);
+  };
+
+  // =================================
+  // Schedule mutes based on video time
+  // =================================
+
+  function findVideo() {
+    const videos = Array.from(document.querySelectorAll('video'));
+    const playing = videos.filter(v => !v.paused && !v.ended);
+    if (playing.length) return playing[0];
+    return videos[0] || null;
   }
 
-  // periodically attempt to attach to new videos
-  setInterval(() => { attachToExistingVideos(); }, 2000);
+  function scheduleMutes() {
+    if (!settings.enabled || !allMutePoints.length) return;
+    const video = findVideo();
+    if (!video || video.paused) return;
 
-  /* =====================
-     Subtitle detection
-     ===================== */
+    const currentMs = video.currentTime * 1000;
+    const lookAheadMs = 5000;
+
+    for (const point of allMutePoints) {
+      if (point.timeMs < currentMs - 1000) continue;
+      if (point.timeMs > currentMs + lookAheadMs) break;
+
+      const key = `${point.timeMs}::${point.word}`;
+      if (scheduledTimers.has(key)) continue;
+
+      const delay = point.timeMs - currentMs;
+      if (delay < -500) continue; // already passed
+
+      const timerId = setTimeout(() => {
+        muteTabForDuration(point.durationMs, point.word);
+        scheduledTimers.delete(key);
+      }, Math.max(0, delay));
+
+      scheduledTimers.set(key, timerId);
+    }
+  }
+
+  // Clear scheduled timers on seek
+  function clearScheduled() {
+    for (const [key, id] of scheduledTimers) {
+      clearTimeout(id);
+    }
+    scheduledTimers.clear();
+  }
+
+  // Watch for video seeks
+  function attachVideoListeners() {
+    const video = findVideo();
+    if (!video || video.__cleanMuteAttached) return;
+    video.__cleanMuteAttached = true;
+    video.addEventListener('seeked', () => {
+      clearScheduled();
+      scheduleMutes();
+    });
+    video.addEventListener('play', () => {
+      scheduleMutes();
+    });
+  }
+
+  // Periodically schedule upcoming mutes
+  setInterval(() => {
+    if (!settings.enabled) return;
+    attachVideoListeners();
+    if (subtitleIntercepted) {
+      scheduleMutes();
+    }
+  }, 500);
+
+  // =================================
+  // Fallback: DOM-based subtitle scan
+  // (used when subtitle file not intercepted)
+  // =================================
+
   const KNOWN_SELECTORS = [
-    '[data-uia*="subtitle"]',
-    '[data-uia*="caption"]',
-    '.player-timedtext',
-    '.atvwebplayersdk-captions-text',
-    '.atvwebplayersdk-captions-content',
-    '.atvwebplayersdk-caption-text',
-    '.caption',
-    '.captions',
-    '.caption-text',
-    '.playerCaptions',
-    '.timedtext'
+    '[data-uia*="subtitle"]', '[data-uia*="caption"]',
+    '.player-timedtext', '.atvwebplayersdk-captions-text',
+    '.atvwebplayersdk-captions-content', '.atvwebplayersdk-caption-text',
+    '.caption', '.captions', '.caption-text', '.playerCaptions', '.timedtext'
   ];
+
+  function isVisible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return false;
+    if (r.bottom < 0 || r.top > (window.innerHeight || document.documentElement.clientHeight)) return false;
+    const style = window.getComputedStyle(el);
+    if (style && (style.visibility === 'hidden' || style.display === 'none' || style.opacity === '0')) return false;
+    return true;
+  }
+
+  function getSubtitleElementId(el) {
+    if (!subtitleElementIds.has(el)) {
+      subtitleElementIds.set(el, `cleanmute-el-${nextSubtitleElementId++}`);
+    }
+    return subtitleElementIds.get(el);
+  }
 
   function collectFromRoot(root, found) {
     if (!root) return;
     try {
       for (const sel of KNOWN_SELECTORS) {
-        const nodes = (root.querySelectorAll ? root.querySelectorAll(sel) : []);
-        nodes.forEach(el => found.add(el));
+        (root.querySelectorAll ? root.querySelectorAll(sel) : []).forEach(el => found.add(el));
       }
       if (root.querySelectorAll) {
-        const all = root.querySelectorAll('*');
-        for (const child of all) {
-          if (child.shadowRoot) {
-            collectFromRoot(child.shadowRoot, found);
-          }
+        for (const child of root.querySelectorAll('*')) {
+          if (child.shadowRoot) collectFromRoot(child.shadowRoot, found);
         }
       }
-    } catch (e) {
-      // Some shadow roots or cross-origin frames may be inaccessible
-    }
+    } catch (e) {}
   }
 
   function isLikelySubtitleElement(el) {
     if (!isVisible(el)) return false;
     if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT') return false;
     const text = (el.innerText || el.textContent || '').trim();
-    if (!text) return false;
-    const len = text.length;
+    if (!text || text.length > 180 || text.length < 1) return false;
     const lines = text.split(/\r?\n/).filter(Boolean).length;
-    if (len > 180 || len < 1 || lines > 3) return false;
+    if (lines > 3) return false;
     const rect = el.getBoundingClientRect();
     if (rect.width < 20 || rect.height < 10) return false;
-    const role = el.getAttribute && (el.getAttribute('role') || '').toLowerCase();
-    if (role === 'status' || role === 'alert' || role === 'log') return true;
     const className = (el.className || '').toString().toLowerCase();
-    if (className.includes('subtitle') || className.includes('caption') || className.includes('captions') || className.includes('timedtext')) return true;
+    if (className.includes('subtitle') || className.includes('caption') || className.includes('timedtext')) return true;
     const bottomCenter = rect.top + rect.height / 2;
     if (bottomCenter > window.innerHeight * 0.7 && rect.bottom > window.innerHeight * 0.85) return true;
     return false;
   }
 
-  function findSubtitleCandidates() {
+  function scanAndProcess() {
+    // Skip DOM fallback if we successfully intercepted subtitles
+    if (subtitleIntercepted) return;
+    if (!settings.enabled) return;
+
     const found = new Set();
     collectFromRoot(document, found);
-
     if (!found.size) {
-      // Fallback: scan visible elements only when no known subtitle containers are found.
-      const all = Array.from(document.querySelectorAll('body *'));
-      for (const el of all) {
-        try {
-          if (isLikelySubtitleElement(el)) {
-            found.add(el);
-          }
-        } catch (e) { /* ignore inaccessibles */ }
+      for (const el of document.querySelectorAll('body *')) {
+        try { if (isLikelySubtitleElement(el)) found.add(el); } catch (e) {}
       }
     }
     const candidates = Array.from(found).filter(el => isVisible(el) && isLikelySubtitleElement(el));
-    if (!candidates.length) {
-      log('CleanMute: no subtitle candidates found');
-    }
-    return candidates;
-  }
+    if (!candidates.length) return;
 
-  function scanAndProcess() {
-    if (!settings.enabled) return;
-    const subtitleEls = findSubtitleCandidates();
-    if (!subtitleEls.length) return;
     const blocked = settings.blockedWords || [];
     if (!blocked.length) return;
-    for (const el of subtitleEls) {
+
+    for (const el of candidates) {
       const text = (el.innerText || el.textContent || '').trim();
       if (!text) continue;
       const lower = text.toLowerCase();
-      // skip already-masked content
       if (lower.indexOf('*') !== -1) continue;
-      const match = (function(txt) { try { return findBlockedWord(txt); } catch (e) { return null; } })(lower);
+      const match = findBlockedWordInText(lower);
       if (!match) continue;
       const wTrim = match.word.trim();
       const elementId = getSubtitleElementId(el);
       const matchKey = `${elementId}::${wTrim.toLowerCase()}::${lower}`;
       const last = debounceMap.get(matchKey) || 0;
-        if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) {
-          continue;
-        }
-
-        debounceMap.set(matchKey, now());
-        log('Detected blocked word', wTrim, 'in text:', text);
-
-        muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, wTrim);
-
-        // once we matched a blocked word in this element, don't check other words for same element in this scan
-        break;
+      if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) continue;
+      debounceMap.set(matchKey, now());
+      muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, wTrim);
+      break;
     }
   }
 
-  /* ==================
-     Mutation observation
-     ================== */
+  // MutationObserver for DOM fallback
   let observer = null;
   function startObserving() {
     if (observer) return;
-    observer = new MutationObserver((mutations) => {
-      try {
-        scanAndProcess();
-      } catch (e) { log('Observer error', e); }
+    observer = new MutationObserver(() => {
+      try { scanAndProcess(); } catch (e) {}
     });
     observer.observe(document.documentElement || document.body, { childList: true, subtree: true, characterData: true });
-    log('Started MutationObserver for subtitles');
-    // initial scan
     setTimeout(scanAndProcess, 500);
-    // attach to any textTracks we can find
-    setTimeout(attachToExistingVideos, 800);
   }
 
-  function stopObserving() {
-    if (!observer) return;
-    observer.disconnect();
-    observer = null;
-    log('Stopped observing');
-  }
-
-  /* ==============
-     Demo / Test Mode
-     ============== */
-  let demoInterval = null;
-  function createDemoSubtitle(text) {
-    // add a simple subtitle-like div at bottom for testing
-    let demo = document.getElementById('cleanmute-demo-subtitle');
-    if (!demo) {
-      demo = document.createElement('div');
-      demo.id = 'cleanmute-demo-subtitle';
-      demo.style.position = 'fixed';
-      demo.style.left = '50%';
-      demo.style.transform = 'translateX(-50%)';
-      demo.style.bottom = '8%';
-      demo.style.background = 'rgba(0,0,0,0.7)';
-      demo.style.color = 'white';
-      demo.style.padding = '8px 12px';
-      demo.style.fontSize = '20px';
-      demo.style.borderRadius = '4px';
-      demo.style.zIndex = 2147483647;
-      demo.style.textAlign = 'center';
-      demo.style.maxWidth = '90%';
-      document.body.appendChild(demo);
-    }
-    demo.innerText = text || 'Demo subtitle — safe text.';
-    // ensure demo is found by findSubtitleCandidates via visibility and bottom placement
-  }
-
-  function startDemoCycler() {
-    if (demoInterval) return;
-    const samples = [];
-    if (!samples.length) return;
-    let i = 0;
-    createDemoSubtitle(samples[0]);
-    demoInterval = setInterval(() => {
-      i = (i + 1) % samples.length;
-      createDemoSubtitle(samples[i]);
-    }, 2500);
-  }
-
-  function stopDemoCycler() {
-    if (demoInterval) clearInterval(demoInterval);
-    demoInterval = null;
-    const demo = document.getElementById('cleanmute-demo-subtitle');
-    if (demo) demo.remove();
-  }
-
-  /* ======================
-     Message handling (from popup)
-     ====================== */
+  // ---- Message handling ----
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || !msg.action) return;
     if (msg.action === 'reloadSettings') {
-      loadSettings(() => { sendResponse({ok:true}); startObserving(); });
-      return true; // async
-    }
-    if (msg.action === 'createDemo') {
-      startDemoCycler();
-      sendResponse({ok:true});
-    }
-    if (msg.action === 'stopDemo') {
-      stopDemoCycler();
-      sendResponse({ok:true});
+      loadSettings(() => {
+        // Reprocess intercepted subtitles with new blocked words
+        if (subtitleIntercepted) {
+          clearScheduled();
+          // Re-parse would require keeping raw cues; for now just reload page
+        }
+        sendResponse({ok:true});
+        startObserving();
+      });
+      return true;
     }
   });
 
-  /* =============
-     Initialization
-     ============= */
+  // ---- Init ----
   loadSettings(() => {
-    // remove any leftover demo subtitle element from prior runs
-    try {
-      const d = document.getElementById('cleanmute-demo-subtitle');
-      if (d) d.remove();
-    } catch (e) {}
-
-    if (settings.testMode) startDemoCycler();
-    if (settings.enabled) startObserving(); else stopObserving();
-    // Also rescan once a while in case observers miss something
+    if (settings.enabled) startObserving();
     setInterval(() => { if (settings.enabled) scanAndProcess(); }, 3000);
   });
-
 }

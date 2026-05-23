@@ -19,242 +19,84 @@
       padding: 80px 20px;
       text-align: center;
     }
-    .hero h1 {
-      font-size: 3rem;
-      margin-bottom: 16px;
-      font-weight: 700;
-    }
-    .hero p {
-      font-size: 1.25rem;
-      opacity: 0.9;
-      max-width: 600px;
-      margin: 0 auto 32px;
-    }
-    .buttons {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
+    .hero h1 { font-size: 3rem; margin-bottom: 16px; font-weight: 700; }
+    .hero p { font-size: 1.25rem; opacity: 0.9; max-width: 600px; margin: 0 auto 32px; }
+    .buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
     .btn {
-      display: inline-block;
-      padding: 14px 32px;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 1rem;
+      display: inline-block; padding: 14px 32px; border-radius: 8px;
+      text-decoration: none; font-weight: 600; font-size: 1rem;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .btn-primary {
-      background: #e94560;
-      color: white;
-    }
-    .btn-secondary {
-      background: rgba(255,255,255,0.15);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.3);
-    }
-    .features {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 80px 20px;
-    }
-    .features h2 {
-      text-align: center;
-      font-size: 2rem;
-      margin-bottom: 48px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 32px;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 28px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .card h3 {
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-    }
-    .card p {
-      color: #555;
-      font-size: 0.95rem;
-    }
-    .card-icon {
-      font-size: 2rem;
-      margin-bottom: 12px;
-    }
-    .how-it-works {
-      background: white;
-      padding: 80px 20px;
-    }
-    .how-it-works h2 {
-      text-align: center;
-      font-size: 2rem;
-      margin-bottom: 48px;
-    }
-    .steps {
-      max-width: 700px;
-      margin: 0 auto;
-    }
-    .step {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 32px;
-      align-items: flex-start;
-    }
-    .step-num {
-      background: #e94560;
-      color: white;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-    .step h3 { margin-bottom: 4px; }
-    .step p { color: #555; font-size: 0.95rem; }
-    .open-source {
-      max-width: 700px;
-      margin: 0 auto;
-      padding: 80px 20px;
-      text-align: center;
-    }
-    .open-source h2 {
-      font-size: 2rem;
-      margin-bottom: 16px;
-    }
-    .open-source p {
-      color: #555;
-      margin-bottom: 24px;
-      font-size: 1.05rem;
-    }
-    footer {
-      text-align: center;
-      padding: 32px 20px;
-      color: #888;
-      font-size: 0.85rem;
-      border-top: 1px solid #eee;
-    }
-    footer a { color: #e94560; text-decoration: none; }
-    .demo {
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .btn-primary { background: #e94560; color: white; }
+    .btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
+    .demo-section {
       background: #0d0d1a;
       color: white;
       padding: 80px 20px;
       text-align: center;
     }
-    .demo h2 { font-size: 2rem; margin-bottom: 8px; }
-    .demo-subtitle { color: rgba(255,255,255,0.6); margin-bottom: 32px; font-size: 1.05rem; }
-    .demo-player {
+    .demo-section h2 { font-size: 2rem; margin-bottom: 8px; }
+    .demo-section > p { color: rgba(255,255,255,0.6); margin-bottom: 32px; font-size: 1.05rem; }
+    .demo-video {
       max-width: 720px;
       margin: 0 auto;
-    }
-    .sim-player {
-      width: 100%;
-      aspect-ratio: 16/9;
       border-radius: 12px;
       overflow: hidden;
-      position: relative;
       background: #000;
-    }
-    .sim-player iframe {
-      width: 100%; height: 100%;
-      position: absolute; inset: 0;
-    }
-    .sim-scene {
-      width: 100%; height: 100%;
-      position: relative;
-    }
-    .sim-subtitle {
-      position: absolute;
-      bottom: 52px;
-      left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 6px 18px;
-      font-size: clamp(14px, 2vw, 22px);
-      border-radius: 4px;
       text-align: center;
-      max-width: 85%;
-      opacity: 0;
-      transition: opacity 0.15s;
-      line-height: 1.4;
+      color: rgba(255,255,255,0.4);
+      padding: 40px 20px;
+      font-size: 1rem;
     }
-    .sim-subtitle.visible { opacity: 1; }
-    .sim-subtitle .blocked { color: #e94560; }
-    .sim-mute-badge {
-      position: absolute;
-      top: 12px; right: 12px;
-      background: rgba(233,69,96,0.9);
-      color: white;
-      padding: 5px 12px;
-      border-radius: 5px;
-      font-size: clamp(10px, 1.3vw, 14px);
-      font-weight: 600;
-      opacity: 0;
-      transition: opacity 0.15s;
+    .demo-video video {
+      width: 100%;
+      border-radius: 12px;
     }
-    .sim-mute-badge.visible { opacity: 1; }
-    .demo-controls {
+    .demo-placeholder {
+      aspect-ratio: 16/9;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      margin-top: 20px;
-    }
-    .toggle-label {
-      display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 12px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 600;
-      user-select: none;
     }
-    .toggle-label input { display: none; }
-    .toggle-slider {
-      width: 48px;
-      height: 26px;
-      background: #555;
-      border-radius: 13px;
-      position: relative;
-      transition: background 0.2s;
+    .demo-placeholder span { font-size: 3rem; }
+    .features {
+      max-width: 900px; margin: 0 auto; padding: 80px 20px;
     }
-    .toggle-slider::after {
-      content: '';
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background: white;
-      border-radius: 50%;
-      top: 3px;
-      left: 3px;
-      transition: transform 0.2s;
+    .features h2 { text-align: center; font-size: 2rem; margin-bottom: 48px; }
+    .grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px;
     }
-    .toggle-label input:checked + .toggle-slider {
-      background: #e94560;
+    .card {
+      background: white; border-radius: 12px; padding: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .toggle-label input:checked + .toggle-slider::after {
-      transform: translateX(22px);
+    .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+    .card p { color: #555; font-size: 0.95rem; }
+    .card-icon { font-size: 2rem; margin-bottom: 12px; }
+    .how-it-works { background: white; padding: 80px 20px; }
+    .how-it-works h2 { text-align: center; font-size: 2rem; margin-bottom: 48px; }
+    .steps { max-width: 700px; margin: 0 auto; }
+    .step { display: flex; gap: 20px; margin-bottom: 32px; align-items: flex-start; }
+    .step-num {
+      background: #e94560; color: white; width: 36px; height: 36px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; flex-shrink: 0;
     }
-    .toggle-text { color: rgba(255,255,255,0.9); }
-    .mute-status {
-      color: #e94560;
-      font-size: 0.9rem;
-      font-weight: 600;
-      min-width: 120px;
-      text-align: left;
+    .step h3 { margin-bottom: 4px; }
+    .step p { color: #555; font-size: 0.95rem; }
+    .open-source {
+      max-width: 700px; margin: 0 auto; padding: 80px 20px; text-align: center;
     }
+    .open-source h2 { font-size: 2rem; margin-bottom: 16px; }
+    .open-source p { color: #555; margin-bottom: 24px; font-size: 1.05rem; }
+    footer {
+      text-align: center; padding: 32px 20px; color: #888;
+      font-size: 0.85rem; border-top: 1px solid #eee;
+    }
+    footer a { color: #e94560; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -264,27 +106,18 @@
     <p>Free Chrome extension that automatically mutes audio when profanity appears in video subtitles. Works on any website.</p>
     <div class="buttons">
       <a href="#" class="btn btn-primary">Add to Chrome — Free</a>
-      <a href="https://github.com/dayoola/audofilter" class="btn btn-secondary">View on GitHub</a>
+      <a href="https://github.com/dayoolacodes/audofilter" class="btn btn-secondary">View on GitHub</a>
     </div>
   </section>
 
-  <section class="demo">
+  <section class="demo-section">
     <h2>See It In Action</h2>
-    <p class="demo-subtitle">Watch how AudioFilter detects and mutes profanity in real time. Toggle the filter on and off.</p>
-    <div class="demo-player">
-      <div class="sim-player" id="simPlayer">
-        <div class="sim-scene">
-          <div id="ytplayer"></div>
-          <div class="sim-subtitle" id="simSubtitle"></div>
-          <div class="sim-mute-badge" id="simBadge">&#128263; MUTED</div>
-        </div>
-      </div>
-      <div class="demo-controls">
-        <label class="toggle-label">
-          <input type="checkbox" id="filterToggle" checked>
-          <span class="toggle-slider"></span>
-          <span class="toggle-text">AudioFilter <span id="toggleState">ON</span></span>
-        </label>
+    <p>Watch AudioFilter automatically detect and mute profanity in real time.</p>
+    <div class="demo-video">
+      <div class="demo-placeholder">
+        <span>&#127916;</span>
+        <div>Demo video coming soon</div>
+        <div style="font-size:0.85rem;">Screen record the extension working on a real video and drop the MP4 here.</div>
       </div>
     </div>
   </section>
@@ -359,107 +192,8 @@
   </section>
 
   <footer>
-    <p>AudioFilter &mdash; <a href="https://github.com/dayoolacodes/audofilter/blob/main/PRIVACY.md">Privacy Policy</a> &middot; <a href="https://github.com/dayoola/audofilter">GitHub</a></p>
+    <p>AudioFilter &mdash; <a href="https://github.com/dayoolacodes/audofilter/blob/main/PRIVACY.md">Privacy Policy</a> &middot; <a href="https://github.com/dayoolacodes/audofilter">GitHub</a></p>
   </footer>
 
-  <script>
-    // YouTube IFrame API
-    var tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-
-    var player;
-    var filterOn = true;
-    var subtitleEl = document.getElementById('simSubtitle');
-    var badge = document.getElementById('simBadge');
-
-    // YouTube CC transcript with profanity detected
-    var subs = [
-      [1.35, 6.58, "hey we safe in here from doomsday are", null],
-      [4.78, 8.05, "these walls fortified with anything", null],
-      [6.58, 11.17, "those people are animals", null],
-      [8.05, 12.76, "I just want clean water well then they", null],
-      [11.17, 15.4, "can get a fucking job and pay for water", "fucking"],
-      [12.76, 18.28, "like the rest of us okay I like that", null],
-      [15.4, 20.05, "you want a bleeding-heart types well hey", null],
-      [18.28, 21.55, "cops kill poor people poor people kill", null],
-      [20.05, 24.85, "cops that's the circle of life", null],
-      [21.55, 27.22, "Hakuna Matata easy for the robots", null],
-      [24.85, 28.48, "swimming in your optic canal take one in", null],
-      [27.22, 32.32, "an hour and then after that you can go", null],
-      [28.48, 34.51, "all right hey my TV's broken I want to", null],
-      [32.32, 36.01, "watch your riots as an old one in the", null],
-      [34.51, 38.65, "game room it's hardwired it should be", null],
-      [36.01, 39.66, "working huh you want me to go out there", null],
-      [38.65, 47.55, "with the criminals", null],
-      [39.66, 47.55, "Hakuna Matata buddy oh that's cute", null],
-    ];
-
-    // Blocked words list — same as the extension
-    var blocked = ['fuck','fucks','fucked','fucker','fuckers','fucking','fuckin','shit','shits','shitty','bullshit','bitch','bitches','asshole','damn','goddamn','dick','pussy','nigga','nigger','motherfucker','motherfucking'];
-
-    // Auto-detect profanity in each subtitle line
-    subs.forEach(function(s) {
-      var lower = s[2].toLowerCase();
-      var words = lower.split(/\s+/);
-      for (var i = 0; i < blocked.length; i++) {
-        for (var j = 0; j < words.length; j++) {
-          if (words[j] === blocked[i] || words[j].indexOf(blocked[i]) !== -1) {
-            s[3] = blocked[i];
-            return;
-          }
-        }
-      }
-    });
-
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player('ytplayer', {
-        videoId: 'rzuTQZqGp8w',
-        playerVars: { rel: 0, modestbranding: 1, cc_load_policy: 0 },
-        events: { onReady: function() { setInterval(checkSubs, 80); } }
-      });
-    }
-
-    function checkSubs() {
-      if (!player || !player.getCurrentTime) return;
-      var t = player.getCurrentTime();
-      var current = null;
-      for (var i = 0; i < subs.length; i++) {
-        if (t >= subs[i][0] && t < subs[i][1]) { current = subs[i]; break; }
-      }
-
-      if (current) {
-        var text = current[2];
-        var word = current[3];
-        if (word && filterOn) {
-          // Censor the word in subtitle
-          text = text.replace(new RegExp('\\b' + word + '\\b', 'gi'), function(m) {
-            return '<span class="blocked">' + m[0] + '*'.repeat(m.length - 2) + m[m.length-1] + '</span>';
-          });
-          badge.classList.add('visible');
-          // Mute the YouTube player
-          if (!player.isMuted()) player.mute();
-        } else {
-          badge.classList.remove('visible');
-          if (filterOn && player.isMuted()) player.unMute();
-        }
-        subtitleEl.innerHTML = text;
-        subtitleEl.classList.add('visible');
-      } else {
-        subtitleEl.classList.remove('visible');
-        badge.classList.remove('visible');
-        if (filterOn && player.isMuted()) player.unMute();
-      }
-    }
-
-    document.getElementById('filterToggle').addEventListener('change', function() {
-      filterOn = this.checked;
-      document.getElementById('toggleState').textContent = filterOn ? 'ON' : 'OFF';
-      if (!filterOn) {
-        badge.classList.remove('visible');
-        if (player && player.isMuted()) player.unMute();
-      }
-    });
-  </script>
 </body>
 </html>

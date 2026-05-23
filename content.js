@@ -320,10 +320,25 @@ if (window.__audioFilterLoaded) {
   // =================================
 
   const KNOWN_SELECTORS = [
+    // YouTube
+    '.ytp-caption-segment',
+    '.caption-window',
+    '.ytp-caption-window-container',
+    // Netflix
     '[data-uia*="subtitle"]', '[data-uia*="caption"]',
-    '.player-timedtext', '.atvwebplayersdk-captions-text',
-    '.atvwebplayersdk-captions-content', '.atvwebplayersdk-caption-text',
-    '.caption', '.captions', '.caption-text', '.playerCaptions', '.timedtext'
+    '.player-timedtext',
+    // Amazon Prime
+    '.atvwebplayersdk-captions-text',
+    '.atvwebplayersdk-captions-content',
+    '.atvwebplayersdk-caption-text',
+    // Disney+ / Hulu
+    '[data-testid="subtitle-text"]',
+    '[class*="Subtitle"]',
+    // Generic
+    '.caption', '.captions', '.caption-text',
+    '.playerCaptions', '.timedtext',
+    '.subtitle', '.subtitles',
+    '[class*="caption"]', '[class*="subtitle"]'
   ];
 
   function isVisible(el) {

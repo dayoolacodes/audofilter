@@ -315,15 +315,6 @@ if (window.__cleanMuteLoaded) {
 
         muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, wTrim);
 
-        if (settings.censor) {
-          try {
-            el.style.visibility = 'hidden';
-            setTimeout(() => {
-              try { el.style.visibility = ''; } catch (e) {}
-            }, settings.muteDuration || DEFAULTS.muteDuration);
-          } catch (e) {}
-        }
-
         // once we matched a blocked word in this element, don't check other words for same element in this scan
         break;
     }

@@ -201,21 +201,36 @@ if (window.__cleanMuteLoaded) {
     }
   }
 
+  // Quick check if text might be subtitle data
+  function looksLikeSubtitles(text) {
+    if (!text || text.length < 20 || text.length > 5000000) return false;
+    return text.includes('<tt') || text.includes('<p begin=') ||
+           text.includes('WEBVTT') || text.includes('-->');
+  }
+
+  // URL patterns that likely contain subtitles
+  const SUBTITLE_URL_RE = /ttml|vtt|subtitle|caption|timedtext|dfxp|srt|smi/i;
+
   // Intercept fetch to capture subtitle file responses
   const originalFetch = window.fetch;
   window.fetch = function(...args) {
     const result = originalFetch.apply(this, args);
     try {
       const url = (typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : ''));
-      // Subtitle URLs typically contain ttml, vtt, subtitle, caption, timedtext
-      if (/ttml|vtt|subtitle|caption|timedtext/i.test(url)) {
-        result.then(response => {
-          const clone = response.clone();
-          clone.text().then(text => {
-            tryParseSubtitles(text, url);
-          }).catch(() => {});
-        }).catch(() => {});
-      }
+      // Check all text responses — Amazon may use non-obvious URLs
+      result.then(response => {
+        try {
+          const ct = (response.headers.get('content-type') || '').toLowerCase();
+          const isLikelyUrl = SUBTITLE_URL_RE.test(url);
+          const isLikelyCt = ct.includes('xml') || ct.includes('ttml') || ct.includes('vtt') || ct.includes('text/plain');
+          if (isLikelyUrl || isLikelyCt) {
+            const clone = response.clone();
+            clone.text().then(text => {
+              if (looksLikeSubtitles(text)) tryParseSubtitles(text, url);
+            }).catch(() => {});
+          }
+        } catch (e) {}
+      }).catch(() => {});
     } catch (e) {}
     return result;
   };
@@ -228,16 +243,13 @@ if (window.__cleanMuteLoaded) {
     return originalXHROpen.call(this, method, url, ...rest);
   };
   XMLHttpRequest.prototype.send = function(...args) {
-    const url = this.__cleanMuteUrl || '';
-    if (/ttml|vtt|subtitle|caption|timedtext/i.test(url)) {
-      this.addEventListener('load', function() {
-        try {
-          if (this.responseText) {
-            tryParseSubtitles(this.responseText, url);
-          }
-        } catch (e) {}
-      });
-    }
+    this.addEventListener('load', function() {
+      try {
+        if (this.responseText && looksLikeSubtitles(this.responseText)) {
+          tryParseSubtitles(this.responseText, this.__cleanMuteUrl || '');
+        }
+      } catch (e) {}
+    });
     return originalXHRSend.apply(this, args);
   };
 

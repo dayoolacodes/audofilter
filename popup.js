@@ -2,8 +2,15 @@
 const DEFAULTS = {
   enabled: true,
   blockedWords: [
-    'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
+    'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin','fuckface',
+    'fuckwit','fuckwits','fuckhead','fuckheads','fuckboy','fuckboys',
+    'fuckup','fuckups','fuckall','fuckery','fuckeries',
     'motherfuck','motherfucks','motherfucked','motherfucker','motherfuckers','motherfucking',
+    'clusterfuck','clusterfucks','clusterfucked',
+    'mindfuck','mindfucks','mindfucked',
+    'brainfuck','skullfuck','ratfuck','batfuck',
+    'unfucking','unfucked',
+    'nigga','niggas','nigger','niggers',
     'dick','dicks','dickhead','dickheads',
     'pussy','pussies',
     'asshole','assholes',

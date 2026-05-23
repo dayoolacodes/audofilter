@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AudioFilter Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .player {
+      position: relative;
+      width: 1280px;
+      max-width: 100vw;
+      height: 720px;
+      max-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      overflow: hidden;
+    }
+    /* Fake movie scene */
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scene-content {
+      text-align: center;
+      color: rgba(255,255,255,0.15);
+      font-size: 1.5rem;
+    }
+    /* Fake player controls */
+    .controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+    .play-btn {
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 8px 0 8px 14px;
+      border-color: transparent transparent transparent white;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #e94560;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.5s linear;
+    }
+    .time {
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      font-family: monospace;
+    }
+    /* Subtitle area */
+    .subtitle {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: white;
+      padding: 8px 20px;
+      font-size: 28px;
+      border-radius: 4px;
+      text-align: center;
+      max-width: 80%;
+      opacity: 0;
+      transition: opacity 0.2s;
+      line-height: 1.4;
+    }
+    .subtitle.visible { opacity: 1; }
+    /* Mute indicator */
+    .mute-indicator {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(233, 69, 96, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .mute-indicator.visible { opacity: 1; }
+    /* Tab mute icon simulation */
+    .tab-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 36px;
+      background: #2d2d2d;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+    }
+    .tab {
+      background: #3d3d3d;
+      color: rgba(255,255,255,0.8);
+      padding: 6px 16px;
+      border-radius: 8px 8px 0 0;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tab-mute-icon {
+      font-size: 10px;
+      opacity: 0;
+      color: #e94560;
+    }
+    .tab-mute-icon.visible { opacity: 1; }
+    /* Start button */
+    .start-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+    }
+    .start-overlay.hidden { display: none; }
+    .start-btn {
+      background: #e94560;
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      font-size: 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .start-btn:hover { background: #d63451; }
+  </style>
+</head>
+<body>
+
+<div class="player">
+  <!-- Fake tab bar -->
+  <div class="tab-bar">
+    <div class="tab">
+      <span>Movie — Streaming</span>
+      <span class="tab-mute-icon" id="tabMute">&#128263; Muted</span>
+    </div>
+  </div>
+
+  <!-- Scene background -->
+  <div class="scene">
+    <div class="scene-content">
+      <div style="font-size:4rem; margin-bottom:16px;">&#127916;</div>
+      <div>Movie Scene Playing</div>
+    </div>
+  </div>
+
+  <!-- Subtitle -->
+  <div class="subtitle" id="subtitle"></div>
+
+  <!-- Mute indicator -->
+  <div class="mute-indicator" id="muteIndicator">&#128263; AudioFilter — Muted</div>
+
+  <!-- Player controls -->
+  <div class="controls">
+    <div class="play-btn"></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <span class="time" id="timer">0:00 / 1:05</span>
+  </div>
+
+  <!-- Start overlay -->
+  <div class="start-overlay" id="startOverlay">
+    <button class="start-btn" onclick="startDemo()">&#9654; Play Demo</button>
+  </div>
+</div>
+
+<script>
+  const subtitleEl = document.getElementById('subtitle');
+  const muteIndicator = document.getElementById('muteIndicator');
+  const tabMute = document.getElementById('tabMute');
+  const progress = document.getElementById('progress');
+  const timer = document.getElementById('timer');
+  const startOverlay = document.getElementById('startOverlay');
+
+  const TOTAL_DURATION = 65; // seconds
+
+  // Timeline: [startSec, endSec, text, hasBlockedWord]
+  const timeline = [
+    [2, 5, "Hey, how's it going?", false],
+    [6, 9, "Not bad. Just got back from work.", false],
+    [10, 13, "Man, the traffic was terrible today.", false],
+    [14, 18, "I know, right? Took me two hours\nto get home.", false],
+    [19, 22, "That's fucking ridiculous.", true],
+    [24, 27, "Yeah, and then my boss calls me\nat like 9 PM.", false],
+    [28, 31, "Are you serious? What did he want?", false],
+    [32, 36, "He wanted me to redo the whole\npresentation by morning.", false],
+    [37, 40, "What a load of bullshit.", true],
+    [42, 45, "I told him I'd do it tomorrow.", false],
+    [46, 49, "Good for you. He can't keep\npulling that shit.", true],
+    [51, 55, "Anyway, you wanna grab some food?\nI'm starving.", false],
+    [56, 59, "Hell yeah, let's go.", false],
+    [60, 63, "There's a new place on Fifth Street.", false],
+  ];
+
+  let startTime = 0;
+  let animId = null;
+
+  function startDemo() {
+    startOverlay.classList.add('hidden');
+    startTime = Date.now();
+    tick();
+  }
+
+  function tick() {
+    const elapsed = (Date.now() - startTime) / 1000;
+    const pct = Math.min(100, (elapsed / TOTAL_DURATION) * 100);
+    progress.style.width = pct + '%';
+
+    const mins = Math.floor(elapsed / 60);
+    const secs = Math.floor(elapsed % 60);
+    timer.textContent = `${mins}:${secs.toString().padStart(2,'0')} / 1:05`;
+
+    // Find current subtitle
+    let currentSub = null;
+    for (const [start, end, text, blocked] of timeline) {
+      if (elapsed >= start && elapsed < end) {
+        currentSub = { text, blocked, start, end };
+        break;
+      }
+    }
+
+    if (currentSub) {
+      subtitleEl.innerHTML = currentSub.text.replace(/\n/g, '<br>');
+      subtitleEl.classList.add('visible');
+
+      if (currentSub.blocked) {
+        muteIndicator.classList.add('visible');
+        tabMute.classList.add('visible');
+      } else {
+        muteIndicator.classList.remove('visible');
+        tabMute.classList.remove('visible');
+      }
+    } else {
+      subtitleEl.classList.remove('visible');
+      muteIndicator.classList.remove('visible');
+      tabMute.classList.remove('visible');
+    }
+
+    if (elapsed < TOTAL_DURATION) {
+      animId = requestAnimationFrame(tick);
+    } else {
+      // Reset
+      subtitleEl.classList.remove('visible');
+      muteIndicator.classList.remove('visible');
+      tabMute.classList.remove('visible');
+      startOverlay.classList.remove('hidden');
+    }
+  }
+</script>
+
+</body>
+</html>

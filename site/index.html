@@ -165,20 +165,15 @@
       border-radius: 12px;
       overflow: hidden;
       position: relative;
-      background: #111;
+      background: #000;
+    }
+    .sim-player iframe {
+      width: 100%; height: 100%;
+      position: absolute; inset: 0;
     }
     .sim-scene {
       width: 100%; height: 100%;
       position: relative;
-    }
-    .sim-scene-bg {
-      position: absolute; inset: 0;
-      background: #000;
-    }
-    .sim-scene-bg video {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      opacity: 0.85;
     }
     .sim-subtitle {
       position: absolute;
@@ -210,39 +205,6 @@
       transition: opacity 0.15s;
     }
     .sim-mute-badge.visible { opacity: 1; }
-    .sim-controls {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 40px;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-      gap: 10px;
-    }
-    .sim-play-btn {
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      user-select: none;
-    }
-    .sim-progress {
-      flex: 1; height: 4px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 2px;
-    }
-    .sim-progress-fill {
-      height: 100%;
-      background: #e94560;
-      border-radius: 2px;
-      width: 0%;
-      transition: width 0.3s linear;
-    }
-    .sim-time {
-      color: rgba(255,255,255,0.7);
-      font-size: 12px;
-      font-family: monospace;
-    }
     .demo-controls {
       display: flex;
       align-items: center;
@@ -312,18 +274,9 @@
     <div class="demo-player">
       <div class="sim-player" id="simPlayer">
         <div class="sim-scene">
-          <div class="sim-scene-bg">
-            <video muted loop playsinline autoplay>
-              <source src="https://cdn.coverr.co/videos/coverr-two-friends-talking-in-a-cafe-1584/1080p.mp4" type="video/mp4">
-            </video>
-          </div>
+          <div id="ytplayer"></div>
           <div class="sim-subtitle" id="simSubtitle"></div>
           <div class="sim-mute-badge" id="simBadge">&#128263; MUTED</div>
-          <div class="sim-controls">
-            <span class="sim-play-btn" id="simPlayBtn">&#9654;</span>
-            <div class="sim-progress"><div class="sim-progress-fill" id="simProgress"></div></div>
-            <span class="sim-time" id="simTime">0:00</span>
-          </div>
         </div>
       </div>
       <div class="demo-controls">
@@ -410,101 +363,85 @@
   </footer>
 
   <script>
+    // YouTube IFrame API
+    var tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+
+    var player;
+    var filterOn = true;
     var subtitleEl = document.getElementById('simSubtitle');
     var badge = document.getElementById('simBadge');
-    var progressEl = document.getElementById('simProgress');
-    var timeEl = document.getElementById('simTime');
-    var playBtn = document.getElementById('simPlayBtn');
-    var filterOn = true;
-    var playing = false;
-    var startTime = 0;
-    var DURATION = 48;
 
-    // [startSec, endSec, text, blockedWord or null]
+    // Real transcript from the video with profanity timestamp
+    // The video auto-censors with [__] but the word is spoken at this time
     var subs = [
-      [1, 3.5, "You think you can just walk in here?", null],
-      [4, 7, "I told you, I don't want any trouble.", null],
-      [7.5, 10, "Trouble? You don't know what fucking trouble is.", "fucking"],
-      [11, 14, "Listen, I paid what I owe.", null],
-      [14.5, 17.5, "You paid half. Where's the rest of the money?", null],
-      [18, 21, "I'll get it. Give me till Friday.", null],
-      [21.5, 24, "Friday? Are you shitting me right now?", "shitting"],
-      [25, 28, "I swear, I just need a few more days.", null],
-      [28.5, 31.5, "That's what you said last week, asshole.", "asshole"],
-      [32, 35, "Things have been rough, you know that.", null],
-      [35.5, 38.5, "I don't give a shit about your problems.", "shit"],
-      [39, 42, "We had a deal and you're gonna stick to it.", null],
-      [42.5, 45.5, "Or what? What the fuck are you gonna do?", "fuck"],
-      [46, 48, "You really don't want to find out.", null],
+      [1.4, 6.6, "Hey, we safe in here from doomsday, are", null],
+      [4.8, 8.1, "these walls fortified with anything?", null],
+      [6.6, 11.2, "Those people are animals.", null],
+      [8.1, 12.8, "I just want clean water. Well then they", null],
+      [11.2, 15.4, "can get a fucking job and pay for water", "fucking"],
+      [15.4, 20.1, "like the rest of us. Okay, I like that.", null],
+      [18.3, 21.6, "You want a bleeding-heart types? Well, hey,", null],
+      [20.1, 24.8, "cops kill poor people, poor people kill", null],
+      [21.6, 27.2, "cops. That's the circle of life.", null],
+      [24.8, 28.5, "Hakuna Matata. Easy for the robots", null],
+      [28.5, 34.5, "swimming in your optic canal. Take one in", null],
+      [32.3, 36.0, "an hour. Hey, my TV's broken. I want to", null],
+      [34.5, 38.6, "watch your riots. There's an old one in the", null],
+      [36.0, 39.7, "game room. It's hardwired, it should be", null],
+      [38.6, 47.5, "working. You want me to go out there with the criminals?", null],
+      [39.7, 47.5, "Hakuna Matata, buddy. Oh, that's cute.", null],
     ];
 
-    function tick() {
-      if (!playing) return;
-      var elapsed = (Date.now() - startTime) / 1000;
-      if (elapsed > DURATION) { stop(); return; }
-      progressEl.style.width = (elapsed / DURATION * 100) + '%';
-      var m = Math.floor(elapsed / 60), s = Math.floor(elapsed % 60);
-      timeEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('ytplayer', {
+        videoId: 'rzuTQZqGp8w',
+        playerVars: { rel: 0, modestbranding: 1, cc_load_policy: 0 },
+        events: { onReady: function() { setInterval(checkSubs, 80); } }
+      });
+    }
 
+    function checkSubs() {
+      if (!player || !player.getCurrentTime) return;
+      var t = player.getCurrentTime();
       var current = null;
       for (var i = 0; i < subs.length; i++) {
-        if (elapsed >= subs[i][0] && elapsed < subs[i][1]) { current = subs[i]; break; }
+        if (t >= subs[i][0] && t < subs[i][1]) { current = subs[i]; break; }
       }
 
       if (current) {
         var text = current[2];
         var word = current[3];
         if (word && filterOn) {
+          // Censor the word in subtitle
           text = text.replace(new RegExp('\\b' + word + '\\b', 'gi'), function(m) {
             return '<span class="blocked">' + m[0] + '*'.repeat(m.length - 2) + m[m.length-1] + '</span>';
           });
           badge.classList.add('visible');
+          // Mute the YouTube player
+          if (!player.isMuted()) player.mute();
         } else {
           badge.classList.remove('visible');
+          if (filterOn && player.isMuted()) player.unMute();
         }
         subtitleEl.innerHTML = text;
         subtitleEl.classList.add('visible');
       } else {
         subtitleEl.classList.remove('visible');
         badge.classList.remove('visible');
+        if (filterOn && player.isMuted()) player.unMute();
       }
-      requestAnimationFrame(tick);
     }
-
-    function start() {
-      playing = true;
-      startTime = Date.now();
-      playBtn.textContent = '\u23F8';
-      tick();
-    }
-    function stop() {
-      playing = false;
-      playBtn.textContent = '\u25B6';
-      subtitleEl.classList.remove('visible');
-      badge.classList.remove('visible');
-      progressEl.style.width = '0%';
-      timeEl.textContent = '0:00';
-    }
-
-    playBtn.addEventListener('click', function() {
-      playing ? stop() : start();
-    });
 
     document.getElementById('filterToggle').addEventListener('change', function() {
       filterOn = this.checked;
       document.getElementById('toggleState').textContent = filterOn ? 'ON' : 'OFF';
-      if (!filterOn) badge.classList.remove('visible');
-    });
-
-    // Auto-play on scroll into view
-    var hasPlayed = false;
-    var obs = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting && !hasPlayed) {
-        hasPlayed = true;
-        start();
+      if (!filterOn) {
+        badge.classList.remove('visible');
+        if (player && player.isMuted()) player.unMute();
       }
-    }, { threshold: 0.5 });
-    obs.observe(document.getElementById('simPlayer'));
+    });
   </script>
 </body>
 </html>

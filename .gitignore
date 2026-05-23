@@ -4,3 +4,6 @@
 # Ignore generated extension archive and temporary folder
 cleanmute.zip
 cleanmute/
+audiofilter.zip
+audiofilter/
+

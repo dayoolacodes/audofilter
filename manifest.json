@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "CleanMute",
+  "name": "AudioFilter",
   "version": "1.0.0",
   "description": "Automatically mutes audio when profanity appears in video subtitles. Works on any website.",
   "permissions": ["storage", "scripting", "activeTab", "tabs"],
@@ -10,7 +10,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "CleanMute"
+    "default_title": "AudioFilter"
   },
   "content_scripts": [
     {

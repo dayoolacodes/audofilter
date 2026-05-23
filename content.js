@@ -1,8 +1,8 @@
 // content.js — intercepts subtitle files, parses timing, pre-schedules mutes.
-if (window.__cleanMuteLoaded) {
+if (window.__audioFilterLoaded) {
   // already loaded
 } else {
-  window.__cleanMuteLoaded = true;
+  window.__audioFilterLoaded = true;
 
   const DEFAULTS = {
     enabled: true,
@@ -231,14 +231,14 @@ if (window.__cleanMuteLoaded) {
   const originalXHROpen = XMLHttpRequest.prototype.open;
   const originalXHRSend = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-    this.__cleanMuteUrl = url || '';
+    this.__audioFilterUrl = url || '';
     return originalXHROpen.call(this, method, url, ...rest);
   };
   XMLHttpRequest.prototype.send = function(...args) {
     this.addEventListener('load', function() {
       try {
         if (this.responseText && looksLikeSubtitles(this.responseText)) {
-          tryParseSubtitles(this.responseText, this.__cleanMuteUrl || '');
+          tryParseSubtitles(this.responseText, this.__audioFilterUrl || '');
         }
       } catch (e) {}
     });
@@ -294,8 +294,8 @@ if (window.__cleanMuteLoaded) {
   // Watch for video seeks
   function attachVideoListeners() {
     const video = findVideo();
-    if (!video || video.__cleanMuteAttached) return;
-    video.__cleanMuteAttached = true;
+    if (!video || video.__audioFilterAttached) return;
+    video.__audioFilterAttached = true;
     video.addEventListener('seeked', () => {
       clearScheduled();
       scheduleMutes();
@@ -338,7 +338,7 @@ if (window.__cleanMuteLoaded) {
 
   function getSubtitleElementId(el) {
     if (!subtitleElementIds.has(el)) {
-      subtitleElementIds.set(el, `cleanmute-el-${nextSubtitleElementId++}`);
+      subtitleElementIds.set(el, `audiofilter-el-${nextSubtitleElementId++}`);
     }
     return subtitleElementIds.get(el);
   }

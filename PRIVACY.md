@@ -1,12 +1,12 @@
-# Privacy Policy — CleanMute
+# Privacy Policy — AudioFilter
 
 **Last updated:** May 23, 2026
 
 ## Data Collection
 
-CleanMute does **not** collect, store, transmit, or share any user data. All processing happens locally in your browser.
+AudioFilter does **not** collect, store, transmit, or share any user data. All processing happens locally in your browser.
 
-## What CleanMute Does
+## What AudioFilter Does
 
 - Reads on-screen subtitle text to detect blocked words
 - Intercepts subtitle file downloads (TTML/WebVTT) to parse timing data
@@ -21,7 +21,7 @@ CleanMute does **not** collect, store, transmit, or share any user data. All pro
 
 ## Third-Party Services
 
-CleanMute does not communicate with any external servers or third-party services. No analytics, no tracking, no network requests are made by the extension.
+AudioFilter does not communicate with any external servers or third-party services. No analytics, no tracking, no network requests are made by the extension.
 
 ## Contact
 

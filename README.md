@@ -1,4 +1,4 @@
-# CleanMute
+# AudioFilter
 
 Chrome extension that automatically mutes audio when profanity appears in video subtitles. Works on any website — YouTube, Netflix, Prime Video, and more.
 

@@ -319,9 +319,15 @@ if (window.__cleanMuteLoaded) {
         debounceMap.set(matchKey, now());
         log('Detected blocked word', wTrim, 'in text:', text);
 
-        // Estimate mute duration: single word ~400ms + padding
-        const wordDurationMs = 400 + (WORD_PADDING_MS * 2);
-        muteTabForDuration(wordDurationMs, wTrim);
+        // Estimate when the word will be spoken based on its position.
+        // Average speaking rate ~2.5 words/sec = ~400ms per word.
+        const msPerWord = 400;
+        const delayBeforeMute = match.index * msPerWord;
+        const muteDuration = msPerWord + (WORD_PADDING_MS * 2);
+
+        setTimeout(() => {
+          muteTabForDuration(muteDuration, wTrim);
+        }, delayBeforeMute);
 
         // once we matched a blocked word in this element, don't check other words for same element in this scan
         break;

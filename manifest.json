@@ -7,7 +7,17 @@
   "host_permissions": [
     "*://*.netflix.com/*",
     "*://*.primevideo.com/*",
-    "*://*.amazon.com/gp/video/*"
+    "*://*.amazon.com/gp/video/*",
+    "*://*.amazon.co.uk/gp/video/*",
+    "*://*.amazon.de/gp/video/*",
+    "*://*.amazon.co.jp/gp/video/*",
+    "*://*.amazon.fr/gp/video/*",
+    "*://*.amazon.it/gp/video/*",
+    "*://*.amazon.es/gp/video/*",
+    "*://*.amazon.ca/gp/video/*",
+    "*://*.amazon.com.au/gp/video/*",
+    "*://*.amazon.in/gp/video/*",
+    "*://*.amazon.com.br/gp/video/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -21,7 +31,17 @@
       "matches": [
         "*://*.netflix.com/*",
         "*://*.primevideo.com/*",
-        "*://*.amazon.com/gp/video/*"
+        "*://*.amazon.com/gp/video/*",
+        "*://*.amazon.co.uk/gp/video/*",
+        "*://*.amazon.de/gp/video/*",
+        "*://*.amazon.co.jp/gp/video/*",
+        "*://*.amazon.fr/gp/video/*",
+        "*://*.amazon.it/gp/video/*",
+        "*://*.amazon.es/gp/video/*",
+        "*://*.amazon.ca/gp/video/*",
+        "*://*.amazon.com.au/gp/video/*",
+        "*://*.amazon.in/gp/video/*",
+        "*://*.amazon.com.br/gp/video/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"

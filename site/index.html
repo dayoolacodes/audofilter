@@ -159,11 +159,84 @@
       max-width: 720px;
       margin: 0 auto;
     }
-    .demo-player iframe {
+    .sim-player {
       width: 100%;
       aspect-ratio: 16/9;
       border-radius: 12px;
-      border: none;
+      overflow: hidden;
+      position: relative;
+      background: #111;
+    }
+    .sim-scene {
+      width: 100%; height: 100%;
+      position: relative;
+    }
+    .sim-scene-bg {
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    }
+    .sim-subtitle {
+      position: absolute;
+      bottom: 52px;
+      left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 6px 18px;
+      font-size: clamp(14px, 2vw, 22px);
+      border-radius: 4px;
+      text-align: center;
+      max-width: 85%;
+      opacity: 0;
+      transition: opacity 0.15s;
+      line-height: 1.4;
+    }
+    .sim-subtitle.visible { opacity: 1; }
+    .sim-subtitle .blocked { color: #e94560; }
+    .sim-mute-badge {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: rgba(233,69,96,0.9);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: clamp(10px, 1.3vw, 14px);
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .sim-mute-badge.visible { opacity: 1; }
+    .sim-controls {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 40px;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 10px;
+    }
+    .sim-play-btn {
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sim-progress {
+      flex: 1; height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+    }
+    .sim-progress-fill {
+      height: 100%;
+      background: #e94560;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.3s linear;
+    }
+    .sim-time {
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      font-family: monospace;
     }
     .demo-controls {
       display: flex;
@@ -229,17 +302,27 @@
   </section>
 
   <section class="demo">
-    <h2>Try It Now</h2>
-    <p class="demo-subtitle">Toggle the filter and hear the difference.</p>
+    <h2>See It In Action</h2>
+    <p class="demo-subtitle">Watch how AudioFilter detects and mutes profanity in real time. Toggle the filter on and off.</p>
     <div class="demo-player">
-      <div id="ytplayer"></div>
+      <div class="sim-player" id="simPlayer">
+        <div class="sim-scene">
+          <div class="sim-scene-bg"></div>
+          <div class="sim-subtitle" id="simSubtitle"></div>
+          <div class="sim-mute-badge" id="simBadge">&#128263; MUTED</div>
+          <div class="sim-controls">
+            <span class="sim-play-btn" id="simPlayBtn">&#9654;</span>
+            <div class="sim-progress"><div class="sim-progress-fill" id="simProgress"></div></div>
+            <span class="sim-time" id="simTime">0:00</span>
+          </div>
+        </div>
+      </div>
       <div class="demo-controls">
         <label class="toggle-label">
           <input type="checkbox" id="filterToggle" checked>
           <span class="toggle-slider"></span>
           <span class="toggle-text">AudioFilter <span id="toggleState">ON</span></span>
         </label>
-        <div class="mute-status" id="muteStatus"></div>
       </div>
     </div>
   </section>
@@ -318,72 +401,101 @@
   </footer>
 
   <script>
-    // YouTube IFrame API
-    var tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
+    var subtitleEl = document.getElementById('simSubtitle');
+    var badge = document.getElementById('simBadge');
+    var progressEl = document.getElementById('simProgress');
+    var timeEl = document.getElementById('simTime');
+    var playBtn = document.getElementById('simPlayBtn');
+    var filterOn = true;
+    var playing = false;
+    var startTime = 0;
+    var DURATION = 48;
 
-    var player;
-    var filterEnabled = true;
-    var muteTimeout = null;
-
-    // Profanity timestamps: [startSec, endSec]
-    // UPDATE THESE after watching the video
-    var mutePoints = [
-      [3, 4.2],
-      [7.5, 8.5],
-      [12, 13],
-      [18, 19.2],
-      [24, 25.5],
-      [30, 31],
-      [35, 36.5],
-      [42, 43],
-      [48, 49.5],
-      [55, 56]
+    // [startSec, endSec, text, blockedWord or null]
+    var subs = [
+      [1, 3.5, "You think you can just walk in here?", null],
+      [4, 7, "I told you, I don't want any trouble.", null],
+      [7.5, 10, "Trouble? You don't know what fucking trouble is.", "fucking"],
+      [11, 14, "Listen, I paid what I owe.", null],
+      [14.5, 17.5, "You paid half. Where's the rest of the money?", null],
+      [18, 21, "I'll get it. Give me till Friday.", null],
+      [21.5, 24, "Friday? Are you shitting me right now?", "shitting"],
+      [25, 28, "I swear, I just need a few more days.", null],
+      [28.5, 31.5, "That's what you said last week, asshole.", "asshole"],
+      [32, 35, "Things have been rough, you know that.", null],
+      [35.5, 38.5, "I don't give a shit about your problems.", "shit"],
+      [39, 42, "We had a deal and you're gonna stick to it.", null],
+      [42.5, 45.5, "Or what? What the fuck are you gonna do?", "fuck"],
+      [46, 48, "You really don't want to find out.", null],
     ];
 
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player('ytplayer', {
-        width: '100%',
-        videoId: 'rzuTQZqGp8w',
-        playerVars: { rel: 0, modestbranding: 1 },
-        events: { onReady: onPlayerReady }
-      });
-    }
+    function tick() {
+      if (!playing) return;
+      var elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed > DURATION) { stop(); return; }
+      progressEl.style.width = (elapsed / DURATION * 100) + '%';
+      var m = Math.floor(elapsed / 60), s = Math.floor(elapsed % 60);
+      timeEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
 
-    function onPlayerReady() {
-      setInterval(checkMute, 50);
-    }
-
-    function checkMute() {
-      if (!player || !player.getCurrentTime || !filterEnabled) return;
-      var t = player.getCurrentTime();
-      var shouldMute = false;
-      for (var i = 0; i < mutePoints.length; i++) {
-        if (t >= mutePoints[i][0] && t <= mutePoints[i][1]) {
-          shouldMute = true;
-          break;
-        }
+      var current = null;
+      for (var i = 0; i < subs.length; i++) {
+        if (elapsed >= subs[i][0] && elapsed < subs[i][1]) { current = subs[i]; break; }
       }
-      if (shouldMute) {
-        player.mute();
-        document.getElementById('muteStatus').textContent = 'Muted';
+
+      if (current) {
+        var text = current[2];
+        var word = current[3];
+        if (word && filterOn) {
+          text = text.replace(new RegExp('\\b' + word + '\\b', 'gi'), function(m) {
+            return '<span class="blocked">' + m[0] + '*'.repeat(m.length - 2) + m[m.length-1] + '</span>';
+          });
+          badge.classList.add('visible');
+        } else {
+          badge.classList.remove('visible');
+        }
+        subtitleEl.innerHTML = text;
+        subtitleEl.classList.add('visible');
       } else {
-        if (player.isMuted()) {
-          player.unMute();
-        }
-        document.getElementById('muteStatus').textContent = '';
+        subtitleEl.classList.remove('visible');
+        badge.classList.remove('visible');
       }
+      requestAnimationFrame(tick);
     }
+
+    function start() {
+      playing = true;
+      startTime = Date.now();
+      playBtn.textContent = '\u23F8';
+      tick();
+    }
+    function stop() {
+      playing = false;
+      playBtn.textContent = '\u25B6';
+      subtitleEl.classList.remove('visible');
+      badge.classList.remove('visible');
+      progressEl.style.width = '0%';
+      timeEl.textContent = '0:00';
+    }
+
+    playBtn.addEventListener('click', function() {
+      playing ? stop() : start();
+    });
 
     document.getElementById('filterToggle').addEventListener('change', function() {
-      filterEnabled = this.checked;
-      document.getElementById('toggleState').textContent = filterEnabled ? 'ON' : 'OFF';
-      if (!filterEnabled && player && player.isMuted()) {
-        player.unMute();
-        document.getElementById('muteStatus').textContent = '';
-      }
+      filterOn = this.checked;
+      document.getElementById('toggleState').textContent = filterOn ? 'ON' : 'OFF';
+      if (!filterOn) badge.classList.remove('visible');
     });
+
+    // Auto-play on scroll into view
+    var hasPlayed = false;
+    var obs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && !hasPlayed) {
+        hasPlayed = true;
+        start();
+      }
+    }, { threshold: 0.5 });
+    obs.observe(document.getElementById('simPlayer'));
   </script>
 </body>
 </html>

@@ -4,22 +4,7 @@
   "version": "1.0.0",
   "description": "Mute and optionally censor subtitles when blocked words appear on Netflix and Prime Video.",
   "permissions": ["storage", "scripting", "activeTab", "tabs"],
-  "host_permissions": [
-    "*://*.youtube.com/*",
-    "*://*.netflix.com/*",
-    "*://*.primevideo.com/*",
-    "*://*.amazon.com/gp/video/*",
-    "*://*.amazon.co.uk/gp/video/*",
-    "*://*.amazon.de/gp/video/*",
-    "*://*.amazon.co.jp/gp/video/*",
-    "*://*.amazon.fr/gp/video/*",
-    "*://*.amazon.it/gp/video/*",
-    "*://*.amazon.es/gp/video/*",
-    "*://*.amazon.ca/gp/video/*",
-    "*://*.amazon.com.au/gp/video/*",
-    "*://*.amazon.in/gp/video/*",
-    "*://*.amazon.com.br/gp/video/*"
-  ],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
@@ -29,22 +14,7 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://*.youtube.com/*",
-        "*://*.netflix.com/*",
-        "*://*.primevideo.com/*",
-        "*://*.amazon.com/gp/video/*",
-        "*://*.amazon.co.uk/gp/video/*",
-        "*://*.amazon.de/gp/video/*",
-        "*://*.amazon.co.jp/gp/video/*",
-        "*://*.amazon.fr/gp/video/*",
-        "*://*.amazon.it/gp/video/*",
-        "*://*.amazon.es/gp/video/*",
-        "*://*.amazon.ca/gp/video/*",
-        "*://*.amazon.com.au/gp/video/*",
-        "*://*.amazon.in/gp/video/*",
-        "*://*.amazon.com.br/gp/video/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_start"
     }

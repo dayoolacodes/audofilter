@@ -100,12 +100,11 @@ if (window.__cleanMuteLoaded) {
 
   const TEXT_TRACK_LOOKAHEAD_MS = 12000;
 
-  function isBlockedCueText(text) {
+  // Returns { word, index, totalWords } or null
+  function findBlockedWord(text) {
     const lower = (text || '').toString().toLowerCase();
     if (!lower) return null;
-    // If subtitle already contains masking characters, skip matching to avoid re-triggering
     if (lower.indexOf('*') !== -1) return null;
-    // Tokenize into words using Unicode letter groups to avoid partial matches (e.g., 'class' matching 'ass')
     let tokens = [];
     try {
       tokens = lower.match(/\p{L}+/gu) || [];
@@ -117,26 +116,34 @@ if (window.__cleanMuteLoaded) {
     for (const w of blocked) {
       if (!w) continue;
       const wl = w.trim().toLowerCase();
-      for (const t of tokens) {
-        if (t === wl) return w;
+      for (let i = 0; i < tokens.length; i++) {
+        if (tokens[i] === wl) return { word: w, index: i, totalWords: tokens.length };
       }
     }
     return null;
   }
 
-  function scheduleCueMute(video, track, cue, blockedWord) {
+  const WORD_PADDING_MS = 150; // padding before and after estimated word time
+
+  function scheduleCueMute(video, track, cue, match) {
     const key = cueKeyFor(cue, track, video);
     if (scheduledCueTimers.has(key)) return;
 
-    const nowMs = video.currentTime * 1000;
+    const cueDurationMs = (cue.endTime - cue.startTime) * 1000;
     const cueStartMs = cue.startTime * 1000;
-    const msUntilStart = cueStartMs - nowMs - PRE_MUTE_LEAD_MS;
-    const schedule = Math.max(0, msUntilStart);
-    log('Scheduling pre-mute for blocked cue', blockedWord, 'start in', msUntilStart, 'ms', 'key', key);
+
+    // Estimate when the blocked word is spoken within the cue
+    const wordStartFraction = match.index / match.totalWords;
+    const wordDurationMs = cueDurationMs / match.totalWords;
+    const estimatedWordStartMs = cueStartMs + (wordStartFraction * cueDurationMs) - WORD_PADDING_MS;
+    const muteDuration = wordDurationMs + (WORD_PADDING_MS * 2);
+
+    const nowMs = video.currentTime * 1000;
+    const schedule = Math.max(0, estimatedWordStartMs - nowMs);
 
     const toId = setTimeout(() => {
       try {
-        muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, 'textTrack:' + blockedWord);
+        muteTabForDuration(Math.round(muteDuration), 'textTrack:' + match.word);
       } catch (e) {
         log('Error during scheduled pre-mute', e);
       }
@@ -149,7 +156,7 @@ if (window.__cleanMuteLoaded) {
         clearTimeout(scheduledCueTimers.get(key));
         scheduledCueTimers.delete(key);
       }
-    }, (cue.duration || 5000) + 10000);
+    }, cueDurationMs + 10000);
   }
 
   function scanTrackForBlockedCues(video, track) {
@@ -164,9 +171,9 @@ if (window.__cleanMuteLoaded) {
       if (cueEndMs < nowMs - 500) continue;
       if (cueStartMs > maxMs) continue;
 
-      const blockedWord = isBlockedCueText(cue.text);
-      if (!blockedWord) continue;
-      scheduleCueMute(video, track, cue, blockedWord);
+      const match = findBlockedWord(cue.text);
+      if (!match) continue;
+      scheduleCueMute(video, track, cue, match);
     }
   }
 
@@ -299,21 +306,22 @@ if (window.__cleanMuteLoaded) {
       const lower = text.toLowerCase();
       // skip already-masked content
       if (lower.indexOf('*') !== -1) continue;
-      const matchedWord = (function(txt) { try { return isBlockedCueText(txt); } catch (e) { return null; } })(lower);
-      if (!matchedWord) continue;
-      const wTrim = matchedWord.trim();
+      const match = (function(txt) { try { return findBlockedWord(txt); } catch (e) { return null; } })(lower);
+      if (!match) continue;
+      const wTrim = match.word.trim();
       const elementId = getSubtitleElementId(el);
       const matchKey = `${elementId}::${wTrim.toLowerCase()}::${lower}`;
       const last = debounceMap.get(matchKey) || 0;
         if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) {
-          // debounced for this exact subtitle element + word + text
           continue;
         }
 
         debounceMap.set(matchKey, now());
         log('Detected blocked word', wTrim, 'in text:', text);
 
-        muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, wTrim);
+        // Estimate mute duration: single word ~400ms + padding
+        const wordDurationMs = 400 + (WORD_PADDING_MS * 2);
+        muteTabForDuration(wordDurationMs, wTrim);
 
         // once we matched a blocked word in this element, don't check other words for same element in this scan
         break;

@@ -10,6 +10,15 @@
     <div class="container" style="position:relative;">
       <div id="status" class="status" style="position:absolute;top:4px;right:4px;font-size:11px;"></div>
       <h1>AudioFilter</h1>
+
+      <!-- Live simulation -->
+      <div class="sim-box" id="simBox">
+        <div class="sim-screen">
+          <div class="sim-sub" id="simSub"></div>
+          <div class="sim-badge" id="simBadge">MUTED</div>
+        </div>
+      </div>
+
       <label class="row"><input type="checkbox" id="enableFilter"> Enable filtering</label>
 
       <label class="label">Blocked words (one per line)</label>

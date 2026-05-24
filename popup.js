@@ -104,6 +104,67 @@ function stopCapture() {
   });
 }
 
+// ---- Live simulation ----
+const SIM_LINES = [
+  { text: "You think you can just walk in here?", word: null },
+  { text: "I told you, I don't want any trouble.", word: null },
+  { text: "Trouble? You don't know what fucking trouble is.", word: "fucking" },
+  { text: "Listen, I paid what I owe.", word: null },
+  { text: "That's what you said last week, asshole.", word: "asshole" },
+  { text: "Things have been rough, you know that.", word: null },
+  { text: "I don't give a shit about your problems.", word: "shit" },
+  { text: "We had a deal and you're gonna stick to it.", word: null },
+  { text: "Or what? What the fuck are you gonna do?", word: "fuck" },
+  { text: "You really don't want to find out.", word: null },
+  { text: "That's a load of bullshit and you know it.", word: "bullshit" },
+  { text: "I'm done talking. Let's go.", word: null },
+];
+
+function runSim() {
+  const sub = $('simSub');
+  const badge = $('simBadge');
+  if (!sub || !badge) return;
+  let i = 0;
+
+  function showLine() {
+    if (i >= SIM_LINES.length) i = 0;
+    const line = SIM_LINES[i];
+    i++;
+
+    if (line.word) {
+      // Show with censored word + bleep effect
+      const censored = line.text.replace(
+        new RegExp('\\b' + line.word + '\\b', 'gi'),
+        m => '<span class="bad">' + m[0] + '*'.repeat(m.length - 2) + m[m.length - 1] + '</span>'
+      );
+      sub.innerHTML = censored;
+      sub.classList.add('visible');
+      badge.classList.add('visible');
+
+      // Flash effect
+      sub.style.background = 'rgba(233,69,96,0.3)';
+      setTimeout(() => { sub.style.background = ''; }, 300);
+
+      setTimeout(() => {
+        badge.classList.remove('visible');
+        setTimeout(() => {
+          sub.classList.remove('visible');
+          setTimeout(showLine, 600);
+        }, 1200);
+      }, 800);
+    } else {
+      sub.innerHTML = line.text;
+      sub.classList.add('visible');
+      badge.classList.remove('visible');
+      setTimeout(() => {
+        sub.classList.remove('visible');
+        setTimeout(showLine, 400);
+      }, 2000);
+    }
+  }
+  showLine();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fetch(chrome.runtime.getURL('blockedWords.json'))
     .then(r => r.json())
@@ -115,5 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
       $('captureBtn').addEventListener('click', startCapture);
       $('stopCaptureBtn').addEventListener('click', stopCapture);
       setTimeout(checkStatus, 300);
+      runSim();
     });
 });

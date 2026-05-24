@@ -189,8 +189,11 @@ if (window.__audioFilterLoaded) {
         allMutePoints = allMutePoints.concat(points);
         allMutePoints.sort((a, b) => a.timeMs - b.timeMs);
         subtitleIntercepted = true;
+        log('Intercepted', cues.length, 'cues,', points.length, 'mute points from', url);
       }
     }
+    // Don't set subtitleIntercepted if no cues were found —
+    // allow DOM fallback to run (important for YouTube proto format)
   }
 
   // Quick check if text might be subtitle data
@@ -320,10 +323,6 @@ if (window.__audioFilterLoaded) {
   // =================================
 
   const KNOWN_SELECTORS = [
-    // YouTube
-    '.ytp-caption-segment',
-    '.caption-window',
-    '.ytp-caption-window-container',
     // Netflix
     '[data-uia*="subtitle"]', '[data-uia*="caption"]',
     '.player-timedtext',
@@ -471,8 +470,15 @@ if (window.__audioFilterLoaded) {
   // ---- Init ----
   loadDefaultWords().then(() => {
     loadSettings(() => {
-      if (settings.enabled) startObserving();
-      setInterval(() => { if (settings.enabled) scanAndProcess(); }, 3000);
+      if (settings.enabled) {
+        startObserving();
+        // Scan frequently for YouTube captions (they load late)
+        setInterval(() => { if (settings.enabled) scanAndProcess(); }, 1000);
+        // Extra delayed scans for slow-loading players
+        setTimeout(() => { if (settings.enabled) scanAndProcess(); }, 2000);
+        setTimeout(() => { if (settings.enabled) scanAndProcess(); }, 5000);
+      }
+      log('Initialized. Enabled:', settings.enabled, 'Blocked words:', (settings.blockedWords || []).length);
     });
   });
 }

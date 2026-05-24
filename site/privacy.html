@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — AudioFilter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f0e8;
+      color: #1a1a1a;
+      line-height: 1.8;
+    }
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 48px;
+      background: white;
+      border-bottom: 1px solid #e8e3da;
+    }
+    .nav-logo {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: #1a1a1a;
+      text-decoration: none;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-links a {
+      color: #1a1a1a;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: #e94560; }
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+    h1 {
+      font-family: 'Lato', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .updated {
+      color: #999;
+      font-size: 0.9rem;
+      margin-bottom: 48px;
+    }
+    h2 {
+      font-family: 'Lato', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-top: 40px;
+      margin-bottom: 12px;
+    }
+    p {
+      color: #444;
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+    }
+    ul {
+      color: #444;
+      font-size: 0.95rem;
+      margin-bottom: 16px;
+      padding-left: 24px;
+    }
+    li { margin-bottom: 8px; }
+    strong { color: #1a1a1a; }
+    a { color: #e94560; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer {
+      padding: 12px 48px;
+      font-size: 0.8rem;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #e8e3da;
+    }
+    footer a { color: #999; text-decoration: none; }
+    footer a:hover { color: #e94560; }
+    @media (max-width: 768px) {
+      nav { padding: 16px 20px; }
+      main { padding: 40px 20px 60px; }
+      h1 { font-size: 2rem; }
+      footer { padding: 12px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">AudioFilter</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: May 23, 2026</p>
+
+    <h2>Data Collection</h2>
+    <p>AudioFilter does <strong>not</strong> collect, store, transmit, or share any user data. All processing happens locally in your browser.</p>
+
+    <h2>What AudioFilter Does</h2>
+    <ul>
+      <li>Reads on-screen subtitle text to detect blocked words</li>
+      <li>Intercepts subtitle file downloads (TTML/WebVTT) to parse timing data</li>
+      <li>Temporarily mutes the browser tab when a blocked word is detected</li>
+      <li>Stores your settings (blocked word list, mute duration) locally via Chrome's sync storage</li>
+    </ul>
+
+    <h2>Permissions Explained</h2>
+    <ul>
+      <li><strong>tabs</strong> — Required to mute/unmute the browser tab audio</li>
+      <li><strong>storage</strong> — Required to save your settings</li>
+      <li><strong>Host permissions</strong> — Required to run on streaming sites that play video with subtitles</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <p>AudioFilter does not communicate with any external servers or third-party services. No analytics, no tracking, no network requests are made by the extension.</p>
+
+    <h2>Contact</h2>
+    <p>If you have questions about this privacy policy, open an issue at: <a href="https://github.com/dayoolacodes/audofilter/issues">github.com/dayoolacodes/audofilter/issues</a></p>
+  </main>
+
+  <footer>
+    <span>&copy; <script>document.write(new Date().getFullYear())</script> AudioFilter</span>
+    <a href="/">Home</a>
+  </footer>
+
+</body>
+</html>

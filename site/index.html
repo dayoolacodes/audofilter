@@ -7,7 +7,7 @@
   <meta name="description" content="Free Chrome extension that automatically mutes audio when profanity appears in video subtitles. Works on Netflix, Prime Video, Disney+, and more.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -18,6 +18,8 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f5f0e8;
       color: #1a1a1a;
+      display: flex;
+      flex-direction: column;
     }
 
     /* Nav */
@@ -39,9 +41,7 @@
       align-items: center;
       gap: 8px;
     }
-    .nav-logo span {
-      color: #e94560;
-    }
+    .nav-logo span { color: #e94560; }
     .nav-links {
       display: flex;
       align-items: center;
@@ -53,9 +53,7 @@
       font-size: 0.95rem;
       font-weight: 500;
     }
-    .nav-links a:hover {
-      color: #e94560;
-    }
+    .nav-links a:hover { color: #e94560; }
     .nav-cta {
       background: #1a1a1a;
       color: white !important;
@@ -64,19 +62,16 @@
       font-weight: 600 !important;
       transition: background 0.2s;
     }
-    .nav-cta:hover {
-      background: #333 !important;
-      color: white !important;
-    }
+    .nav-cta:hover { background: #333 !important; color: white !important; }
 
     /* Hero */
     .hero {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      height: calc(100vh - 73px);
       padding: 0 24px;
     }
     .hero h1 {
@@ -87,14 +82,8 @@
       margin-bottom: 24px;
       max-width: 800px;
     }
-    .hero h1 strong {
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-    .hero h1 em {
-      font-style: italic;
-      color: #b8a99a;
-    }
+    .hero h1 strong { font-weight: 700; color: #1a1a1a; }
+    .hero h1 em { font-style: italic; color: #b8a99a; }
     .hero p {
       font-size: 1.1rem;
       color: #666;
@@ -125,6 +114,68 @@
       color: #999;
     }
 
+    /* Bottom marquee */
+    .marquee-wrap {
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 16px 0;
+    }
+
+    /* Two layers: unfiltered (left) and filtered (right) */
+    .marquee-layer {
+      white-space: nowrap;
+      font-family: 'Lato', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 300;
+    }
+    .marquee-layer .track {
+      display: inline-block;
+      animation: marquee 80s linear infinite;
+    }
+
+    /* Left half: unfiltered — profane words shown in red, no strikethrough */
+    .marquee-left {
+      clip-path: inset(0 50% 0 0);
+      color: rgba(0,0,0,0.25);
+    }
+    .marquee-left .profane {
+      color: #e94560;
+    }
+
+    /* Right half: filtered — profane words struck through, text darker */
+    .marquee-right {
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      clip-path: inset(0 0 0 50%);
+      color: rgba(0,0,0,0.85);
+      font-weight: 700;
+    }
+    .marquee-right .profane {
+      color: #e94560;
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+    }
+
+    /* Center SVG waveform */
+    .wave-divider {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      background: #f5f0e8;
+      padding: 4px 12px;
+      border-radius: 10px;
+    }
+
+    @keyframes marquee {
+      0% { transform: translateX(-50%); }
+      100% { transform: translateX(0); }
+    }
+
     @media (max-width: 768px) {
       nav { padding: 16px 20px; }
       .nav-links { gap: 16px; }
@@ -136,7 +187,7 @@
 
   <nav>
     <a href="/" class="nav-logo">
-      <span>&#9835;</span> AudioFilter
+      AudioFilter
     </a>
     <div class="nav-links">
       <a href="https://github.com/dayoolacodes/audofilter">GitHub</a>
@@ -151,6 +202,62 @@
     <a href="#" class="hero-cta">Add to Chrome &mdash; Free</a>
     <div class="hero-sub">Available on Chrome. Open source. No data collected.</div>
   </section>
+
+  <div class="marquee-wrap">
+    <!-- Sound wave SVG in the center -->
+    <div class="wave-divider">
+      <svg width="48" height="28" viewBox="0 0 48 28" fill="none">
+        <rect x="2" y="10" width="3" height="8" rx="1.5" fill="#1a1a1a"><animate attributeName="height" values="8;18;8" dur="0.8s" repeatCount="indefinite"/><animate attributeName="y" values="10;5;10" dur="0.8s" repeatCount="indefinite"/></rect>
+        <rect x="8" y="6" width="3" height="16" rx="1.5" fill="#1a1a1a"><animate attributeName="height" values="16;6;16" dur="0.6s" repeatCount="indefinite"/><animate attributeName="y" values="6;11;6" dur="0.6s" repeatCount="indefinite"/></rect>
+        <rect x="14" y="3" width="3" height="22" rx="1.5" fill="#1a1a1a"><animate attributeName="height" values="22;10;22" dur="0.7s" repeatCount="indefinite"/><animate attributeName="y" values="3;9;3" dur="0.7s" repeatCount="indefinite"/></rect>
+        <rect x="20" y="7" width="3" height="14" rx="1.5" fill="#e94560"><animate attributeName="height" values="14;24;14" dur="0.5s" repeatCount="indefinite"/><animate attributeName="y" values="7;2;7" dur="0.5s" repeatCount="indefinite"/></rect>
+        <rect x="26" y="4" width="3" height="20" rx="1.5" fill="#e94560"><animate attributeName="height" values="20;8;20" dur="0.65s" repeatCount="indefinite"/><animate attributeName="y" values="4;10;4" dur="0.65s" repeatCount="indefinite"/></rect>
+        <rect x="32" y="8" width="3" height="12" rx="1.5" fill="#1a1a1a"><animate attributeName="height" values="12;22;12" dur="0.75s" repeatCount="indefinite"/><animate attributeName="y" values="8;3;8" dur="0.75s" repeatCount="indefinite"/></rect>
+        <rect x="38" y="6" width="3" height="16" rx="1.5" fill="#1a1a1a"><animate attributeName="height" values="16;8;16" dur="0.55s" repeatCount="indefinite"/><animate attributeName="y" values="6;10;6" dur="0.55s" repeatCount="indefinite"/></rect>
+        <rect x="44" y="10" width="3" height="8" rx="1.5" fill="#1a1a1a"><animate attributeName="height" values="8;14;8" dur="0.85s" repeatCount="indefinite"/><animate attributeName="y" values="10;7;10" dur="0.85s" repeatCount="indefinite"/></rect>
+      </svg>
+    </div>
+
+    <!-- Left half: raw unfiltered text -->
+    <div class="marquee-layer marquee-left" id="leftLayer"></div>
+
+    <!-- Right half: filtered text -->
+    <div class="marquee-layer marquee-right" id="rightLayer"></div>
+  </div>
+
+<script>
+  const text = [
+    "I told him the timeline should be ready by Friday, although the team thought it was ",
+    {w:"bullshit"}, " and honestly I can't ", {w:"fucking"},
+    " blame them because there's been a lot of back and forth and the whole ",
+    {w:"damn"}, " thing has been a mess since day one, so I said get your ",
+    {w:"shit"}, " together and figure it out before Monday or we're all screwed, and she just looked at me like what the ",
+    {w:"hell"}, " are you talking about, and I told her the project is falling apart and if we don't stop ",
+    {w:"bitching"}, " about it and actually do something then this whole quarter is a ",
+    {w:"crap"}, " shoot and nobody wants to explain that to the board",
+  ];
+
+  function build(filtered) {
+    let h = '';
+    for (let r = 0; r < 2; r++) {
+      for (const part of text) {
+        if (typeof part === 'string') {
+          h += part;
+        } else if (filtered) {
+          const w = part.w;
+          h += '<span class="profane">' + w[0] + '*'.repeat(w.length - 2) + w[w.length - 1] + '</span>';
+        } else {
+          h += '<span class="profane">' + part.w + '</span>';
+        }
+      }
+      h += ' &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ';
+    }
+    return '<div class="track">' + h + '</div>';
+  }
+
+  document.getElementById('leftLayer').innerHTML = build(false);
+  document.getElementById('rightLayer').innerHTML = build(true);
+</script>
 
 </body>
 </html>

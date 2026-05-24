@@ -58,10 +58,12 @@ async function startCapture(tabId) {
 }
 
 async function stopCapture() {
-  if (captureActive && captureTabId) {
-    chrome.tabs.update(captureTabId, { muted: false });
-    chrome.runtime.sendMessage({ action: 'offscreen-stop' });
+  if (captureTabId) {
+    try { chrome.tabs.update(captureTabId, { muted: false }); } catch (e) {}
   }
+  try { chrome.runtime.sendMessage({ action: 'offscreen-stop' }); } catch (e) {}
+  // Close offscreen document to fully release the stream
+  try { await chrome.offscreen.closeDocument(); } catch (e) {}
   captureActive = false;
   captureTabId = null;
 }

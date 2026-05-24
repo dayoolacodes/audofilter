@@ -23,18 +23,12 @@
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       overflow: hidden;
     }
-    /* Fake movie scene */
-    .scene {
+    /* Animated scene canvas */
+    #sceneCanvas {
       position: absolute;
       inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .scene-content {
-      text-align: center;
-      color: rgba(255,255,255,0.15);
-      font-size: 1.5rem;
+      width: 100%;
+      height: 100%;
     }
     /* Fake player controls */
     .controls {
@@ -48,13 +42,20 @@
       align-items: center;
       padding: 0 16px;
       gap: 12px;
+      z-index: 5;
     }
     .play-btn {
-      width: 0;
-      height: 0;
+      width: 0; height: 0;
       border-style: solid;
       border-width: 8px 0 8px 14px;
       border-color: transparent transparent transparent white;
+      cursor: pointer;
+    }
+    .play-btn.paused {
+      border-width: 0;
+      width: 12px; height: 16px;
+      border-left: 4px solid white;
+      border-right: 4px solid white;
     }
     .progress-bar {
       flex: 1;
@@ -62,18 +63,27 @@
       background: rgba(255,255,255,0.2);
       border-radius: 2px;
       position: relative;
+      cursor: pointer;
     }
     .progress-fill {
       height: 100%;
       background: #e94560;
       border-radius: 2px;
       width: 0%;
-      transition: width 0.5s linear;
+      transition: width 0.3s linear;
     }
     .time {
       color: rgba(255,255,255,0.7);
       font-size: 13px;
       font-family: monospace;
+    }
+    .volume-icon {
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      user-select: none;
+      width: 24px;
+      text-align: center;
     }
     /* Subtitle area */
     .subtitle {
@@ -91,34 +101,58 @@
       opacity: 0;
       transition: opacity 0.2s;
       line-height: 1.4;
+      z-index: 5;
     }
     .subtitle.visible { opacity: 1; }
     /* Mute indicator */
     .mute-indicator {
       position: absolute;
-      top: 20px;
+      top: 56px;
       right: 20px;
-      background: rgba(233, 69, 96, 0.9);
+      background: rgba(233, 69, 96, 0.95);
       color: white;
       padding: 8px 16px;
       border-radius: 6px;
       font-size: 14px;
       font-weight: 600;
       opacity: 0;
-      transition: opacity 0.2s;
+      transition: opacity 0.15s;
+      z-index: 5;
     }
     .mute-indicator.visible { opacity: 1; }
+    /* Detection badge */
+    .detect-badge {
+      position: absolute;
+      top: 56px;
+      left: 20px;
+      background: rgba(0,0,0,0.6);
+      color: rgba(255,255,255,0.6);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      z-index: 5;
+      display: none;
+    }
+    .detect-badge.visible { display: block; }
+    .detect-badge .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: #4caf50;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
     /* Tab mute icon simulation */
     .tab-bar {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       height: 36px;
       background: #2d2d2d;
       display: flex;
       align-items: center;
       padding: 0 8px;
+      z-index: 5;
     }
     .tab {
       background: #3d3d3d;
@@ -134,6 +168,7 @@
       font-size: 10px;
       opacity: 0;
       color: #e94560;
+      transition: opacity 0.15s;
     }
     .tab-mute-icon.visible { opacity: 1; }
     /* Start button */
@@ -144,6 +179,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
+      gap: 16px;
       cursor: pointer;
       z-index: 10;
     }
@@ -159,11 +196,21 @@
       font-weight: 600;
     }
     .start-btn:hover { background: #d63451; }
+    .start-hint {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.85rem;
+    }
+    /* Blocked word highlight in subtitle */
+    .blocked-word {
+      color: #e94560;
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+    }
   </style>
 </head>
 <body>
 
-<div class="player">
+<div class="player" id="player">
   <!-- Fake tab bar -->
   <div class="tab-bar">
     <div class="tab">
@@ -172,12 +219,12 @@
     </div>
   </div>
 
-  <!-- Scene background -->
-  <div class="scene">
-    <div class="scene-content">
-      <div style="font-size:4rem; margin-bottom:16px;">&#127916;</div>
-      <div>Movie Scene Playing</div>
-    </div>
+  <!-- Scene canvas -->
+  <canvas id="sceneCanvas"></canvas>
+
+  <!-- Detection badge -->
+  <div class="detect-badge" id="detectBadge">
+    <span class="dot"></span>WebVTT parsed — <span id="mutePointCount">0</span> mute points detected
   </div>
 
   <!-- Subtitle -->
@@ -188,99 +235,500 @@
 
   <!-- Player controls -->
   <div class="controls">
-    <div class="play-btn"></div>
-    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <div class="play-btn" id="playBtn"></div>
+    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progress"></div></div>
     <span class="time" id="timer">0:00 / 1:05</span>
+    <span class="volume-icon" id="volumeIcon">&#128266;</span>
   </div>
 
   <!-- Start overlay -->
   <div class="start-overlay" id="startOverlay">
-    <button class="start-btn" onclick="startDemo()">&#9654; Play Demo</button>
+    <button class="start-btn" id="startBtn">&#9654; Play Demo</button>
+    <div class="start-hint">Audio will play — uses real WebVTT subtitles &amp; profanity detection</div>
   </div>
 </div>
 
 <script>
+  // =====================================================
+  // Real WebVTT subtitle data (standard WebVTT format)
+  // =====================================================
+  const WEBVTT_DATA = `WEBVTT
+
+1
+00:00:02.000 --> 00:00:05.000
+Hey, how's it going?
+
+2
+00:00:06.000 --> 00:00:09.000
+Not bad. Just got back from work.
+
+3
+00:00:10.000 --> 00:00:13.000
+Man, the traffic was terrible today.
+
+4
+00:00:14.000 --> 00:00:18.000
+I know, right? Took me two hours
+to get home.
+
+5
+00:00:19.000 --> 00:00:22.000
+That's fucking ridiculous.
+
+6
+00:00:24.000 --> 00:00:27.500
+Yeah, and then my boss calls me
+at like 9 PM.
+
+7
+00:00:28.000 --> 00:00:31.000
+Are you serious? What did he want?
+
+8
+00:00:32.000 --> 00:00:36.000
+He wanted me to redo the whole
+presentation by morning.
+
+9
+00:00:37.000 --> 00:00:40.000
+What a load of bullshit.
+
+10
+00:00:42.000 --> 00:00:45.000
+I told him I'd do it tomorrow.
+
+11
+00:00:46.000 --> 00:00:49.500
+Good for you. He can't keep
+pulling that shit.
+
+12
+00:00:51.000 --> 00:00:55.000
+Anyway, you wanna grab some food?
+I'm starving.
+
+13
+00:00:56.000 --> 00:00:59.000
+Hell yeah, let's go.
+
+14
+00:01:00.000 --> 00:01:03.000
+There's a new place on Fifth Street.
+`;
+
+  // =====================================================
+  // Real WebVTT parser (same logic as content.js)
+  // =====================================================
+  function parseWebVTT(text) {
+    const cues = [];
+    const blocks = text.split(/\n\n+/);
+    for (const block of blocks) {
+      const lines = block.trim().split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const timeMatch = lines[i].match(
+          /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/
+        );
+        if (timeMatch) {
+          const startTime = parseVTTTime(timeMatch[1]);
+          const endTime = parseVTTTime(timeMatch[2]);
+          const content = lines.slice(i + 1).join('\n').trim();
+          if (content) {
+            cues.push({ startTime, endTime, text: content });
+          }
+          break;
+        }
+      }
+    }
+    return cues;
+  }
+
+  function parseVTTTime(str) {
+    const p = str.replace(',', '.').match(/(\d+):(\d+):(\d+)\.(\d+)/);
+    if (!p) return 0;
+    return (parseInt(p[1]) * 3600 + parseInt(p[2]) * 60 + parseInt(p[3])) * 1000
+           + parseInt(p[4]);
+  }
+
+  // =====================================================
+  // Load real blocked words list
+  // =====================================================
+  let blockedWords = new Set();
+
+  async function loadBlockedWords() {
+    const paths = ['../blockedWords.json', './blockedWords.json', '/blockedWords.json'];
+    for (const path of paths) {
+      try {
+        const r = await fetch(path);
+        if (r.ok) {
+          const words = await r.json();
+          blockedWords = new Set(words.map(w => w.trim().toLowerCase()));
+          return;
+        }
+      } catch (e) {}
+    }
+    // Inline fallback if file can't be loaded
+    blockedWords = new Set([
+      'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
+      'motherfucker','motherfucking',
+      'shit','shits','shitter','shitting','shitty','shithead','bullshit','horseshit','dipshit','batshit','apeshit',
+      'bitch','bitches','bitching','bitchy',
+      'ass','asses','asshole','assholes','asshat','dumbass','jackass',
+      'damn','damned','dammit','goddamn','goddamnit',
+      'hell','hells','hellish',
+      'dick','dicks','dickhead',
+      'cock','cocks','cocksucker',
+      'pussy','pussies',
+      'cunt','cunts',
+      'bastard','bastards',
+      'piss','pissed','pissing',
+      'crap','crappy',
+      'whore','whores','slut','sluts',
+      'retard','retards','retarded',
+      'nigga','niggas','nigger','niggers',
+      'fag','fags','faggot','faggots',
+    ]);
+  }
+
+  // =====================================================
+  // Real profanity detection (same logic as content.js)
+  // =====================================================
+  function findBlockedWordInText(text) {
+    const lower = (text || '').toLowerCase().replace(/<[^>]*>/g, '');
+    if (!lower) return null;
+    let tokens;
+    try {
+      tokens = lower.match(/\p{L}+/gu) || [];
+    } catch (e) {
+      tokens = lower.match(/[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+/g) || [];
+    }
+    if (!tokens.length) return null;
+    for (let i = 0; i < tokens.length; i++) {
+      if (blockedWords.has(tokens[i])) {
+        return { word: tokens[i], index: i, totalWords: tokens.length };
+      }
+    }
+    return null;
+  }
+
+  // =====================================================
+  // Process cues into mute points (same logic as content.js)
+  // =====================================================
+  const PADDING_MS = 150;
+
+  function processCues(cues) {
+    const points = [];
+    for (const cue of cues) {
+      const match = findBlockedWordInText(cue.text);
+      if (!match) continue;
+
+      const cueDurationMs = cue.endTime - cue.startTime;
+      const wordFraction = match.index / match.totalWords;
+      const wordDuration = cueDurationMs / match.totalWords;
+
+      const wordStartMs = cue.startTime + (wordFraction * cueDurationMs) - PADDING_MS;
+      const muteDuration = wordDuration + (PADDING_MS * 2);
+
+      points.push({
+        timeMs: Math.max(0, Math.round(wordStartMs)),
+        durationMs: Math.round(muteDuration),
+        endMs: Math.max(0, Math.round(wordStartMs)) + Math.round(muteDuration),
+        word: match.word,
+        cue: cue
+      });
+    }
+    return points;
+  }
+
+  // =====================================================
+  // Audio engine — ambient music via Web Audio API
+  // =====================================================
+  let audioCtx = null;
+  let masterGain = null;
+  let isMuted = false;
+
+  function initAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.25;
+    masterGain.connect(audioCtx.destination);
+
+    // Create a warm ambient pad (C major chord with gentle detuning)
+    const notes = [
+      { freq: 130.81, type: 'sine', gain: 0.12 },    // C3
+      { freq: 164.81, type: 'sine', gain: 0.09 },    // E3
+      { freq: 196.00, type: 'sine', gain: 0.09 },    // G3
+      { freq: 261.63, type: 'sine', gain: 0.07 },    // C4
+      { freq: 329.63, type: 'triangle', gain: 0.04 }, // E4 (soft shimmer)
+    ];
+
+    notes.forEach(n => {
+      const osc = audioCtx.createOscillator();
+      osc.type = n.type;
+      osc.frequency.value = n.freq;
+      // Add slight detune for warmth
+      osc.detune.value = (Math.random() - 0.5) * 8;
+
+      const gain = audioCtx.createGain();
+      gain.gain.value = n.gain;
+
+      // Gentle LFO for movement
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 0.15 + Math.random() * 0.2;
+      lfoGain.gain.value = n.gain * 0.3;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start();
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+    });
+
+    // Add subtle rhythm with a soft kick-like pulse
+    function pulseLoop() {
+      if (!audioCtx || audioCtx.state === 'closed') return;
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = 60;
+      const env = audioCtx.createGain();
+      env.gain.value = 0;
+      env.gain.setValueAtTime(0.06, audioCtx.currentTime);
+      env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc.connect(env);
+      env.connect(masterGain);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+      setTimeout(pulseLoop, 2000);
+    }
+    setTimeout(pulseLoop, 1000);
+  }
+
+  function muteAudio() {
+    if (!masterGain || isMuted) return;
+    isMuted = true;
+    masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.02);
+  }
+
+  function unmuteAudio() {
+    if (!masterGain || !isMuted) return;
+    isMuted = false;
+    masterGain.gain.setTargetAtTime(0.25, audioCtx.currentTime, 0.02);
+  }
+
+  // =====================================================
+  // Canvas scene animation
+  // =====================================================
+  const canvas = document.getElementById('sceneCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resizeCanvas() {
+    const player = document.getElementById('player');
+    canvas.width = player.clientWidth;
+    canvas.height = player.clientHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  function initParticles() {
+    particles = [];
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.2,
+        r: Math.random() * 2 + 0.5,
+        alpha: Math.random() * 0.3 + 0.1,
+      });
+    }
+  }
+  initParticles();
+
+  function drawScene(elapsed) {
+    const w = canvas.width, h = canvas.height;
+    // Gradient background with subtle hue shift
+    const hue = 220 + Math.sin(elapsed * 0.1) * 15;
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, `hsl(${hue}, 40%, 10%)`);
+    grad.addColorStop(0.5, `hsl(${hue + 20}, 35%, 14%)`);
+    grad.addColorStop(1, `hsl(${hue + 40}, 45%, 18%)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Floating particles
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = w;
+      if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h;
+      if (p.y > h) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+      ctx.fill();
+    }
+
+    // Subtle vignette
+    const vignette = ctx.createRadialGradient(w/2, h/2, h*0.3, w/2, h/2, h*0.8);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, w, h);
+
+    // Film grain effect (subtle)
+    if (Math.random() > 0.7) {
+      for (let i = 0; i < 20; i++) {
+        const gx = Math.random() * w;
+        const gy = Math.random() * h;
+        ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.03})`;
+        ctx.fillRect(gx, gy, 1, 1);
+      }
+    }
+  }
+
+  // =====================================================
+  // Demo playback engine
+  // =====================================================
   const subtitleEl = document.getElementById('subtitle');
   const muteIndicator = document.getElementById('muteIndicator');
   const tabMute = document.getElementById('tabMute');
-  const progress = document.getElementById('progress');
-  const timer = document.getElementById('timer');
+  const progressEl = document.getElementById('progress');
+  const timerEl = document.getElementById('timer');
   const startOverlay = document.getElementById('startOverlay');
+  const detectBadge = document.getElementById('detectBadge');
+  const mutePointCountEl = document.getElementById('mutePointCount');
+  const playBtn = document.getElementById('playBtn');
+  const volumeIcon = document.getElementById('volumeIcon');
 
-  const TOTAL_DURATION = 65; // seconds
-
-  // Timeline: [startSec, endSec, text, hasBlockedWord]
-  const timeline = [
-    [2, 5, "Hey, how's it going?", false],
-    [6, 9, "Not bad. Just got back from work.", false],
-    [10, 13, "Man, the traffic was terrible today.", false],
-    [14, 18, "I know, right? Took me two hours\nto get home.", false],
-    [19, 22, "That's fucking ridiculous.", true],
-    [24, 27, "Yeah, and then my boss calls me\nat like 9 PM.", false],
-    [28, 31, "Are you serious? What did he want?", false],
-    [32, 36, "He wanted me to redo the whole\npresentation by morning.", false],
-    [37, 40, "What a load of bullshit.", true],
-    [42, 45, "I told him I'd do it tomorrow.", false],
-    [46, 49, "Good for you. He can't keep\npulling that shit.", true],
-    [51, 55, "Anyway, you wanna grab some food?\nI'm starving.", false],
-    [56, 59, "Hell yeah, let's go.", false],
-    [60, 63, "There's a new place on Fifth Street.", false],
-  ];
-
+  let cues = [];
+  let mutePoints = [];
   let startTime = 0;
   let animId = null;
+  let playing = false;
+  let TOTAL_DURATION = 65;
+  let scheduledMutes = new Map();
+
+  // Parse subtitles and compute mute points on load
+  async function init() {
+    await loadBlockedWords();
+    cues = parseWebVTT(WEBVTT_DATA);
+    mutePoints = processCues(cues);
+    // Set total duration from last cue end + 2s buffer
+    if (cues.length > 0) {
+      TOTAL_DURATION = (cues[cues.length - 1].endTime / 1000) + 2;
+    }
+    console.log(`AudioFilter Demo: Parsed ${cues.length} WebVTT cues, found ${mutePoints.length} mute points`);
+    mutePoints.forEach(p => {
+      console.log(`  Mute "${p.word}" at ${(p.timeMs/1000).toFixed(1)}s for ${p.durationMs}ms`);
+    });
+  }
 
   function startDemo() {
     startOverlay.classList.add('hidden');
+    initAudio();
     startTime = Date.now();
+    playing = true;
+    playBtn.classList.add('paused');
+    detectBadge.classList.add('visible');
+    mutePointCountEl.textContent = mutePoints.length;
+    scheduledMutes.clear();
     tick();
   }
 
+  function renderSubtitleWithHighlight(text, blockedWord) {
+    // Highlight the blocked word in the subtitle text
+    if (!blockedWord) return text.replace(/\n/g, '<br>');
+    const regex = new RegExp(`\\b(${blockedWord})\\b`, 'gi');
+    return text.replace(/\n/g, '<br>').replace(regex, '<span class="blocked-word">$1</span>');
+  }
+
   function tick() {
+    if (!playing) return;
+
     const elapsed = (Date.now() - startTime) / 1000;
+    const elapsedMs = elapsed * 1000;
     const pct = Math.min(100, (elapsed / TOTAL_DURATION) * 100);
-    progress.style.width = pct + '%';
+    progressEl.style.width = pct + '%';
 
     const mins = Math.floor(elapsed / 60);
     const secs = Math.floor(elapsed % 60);
-    timer.textContent = `${mins}:${secs.toString().padStart(2,'0')} / 1:05`;
+    const totalMins = Math.floor(TOTAL_DURATION / 60);
+    const totalSecs = Math.floor(TOTAL_DURATION % 60);
+    timerEl.textContent = `${mins}:${secs.toString().padStart(2,'0')} / ${totalMins}:${totalSecs.toString().padStart(2,'0')}`;
 
-    // Find current subtitle
-    let currentSub = null;
-    for (const [start, end, text, blocked] of timeline) {
-      if (elapsed >= start && elapsed < end) {
-        currentSub = { text, blocked, start, end };
+    // Find active cue
+    let activeCue = null;
+    for (const cue of cues) {
+      if (elapsedMs >= cue.startTime && elapsedMs < cue.endTime) {
+        activeCue = cue;
         break;
       }
     }
 
-    if (currentSub) {
-      subtitleEl.innerHTML = currentSub.text.replace(/\n/g, '<br>');
-      subtitleEl.classList.add('visible');
-
-      if (currentSub.blocked) {
-        muteIndicator.classList.add('visible');
-        tabMute.classList.add('visible');
-      } else {
-        muteIndicator.classList.remove('visible');
-        tabMute.classList.remove('visible');
+    // Check if currently in a mute window
+    let currentlyMuting = false;
+    let currentMuteWord = null;
+    for (const mp of mutePoints) {
+      if (elapsedMs >= mp.timeMs && elapsedMs < mp.endMs) {
+        currentlyMuting = true;
+        currentMuteWord = mp.word;
+        break;
       }
+    }
+
+    // Show subtitle
+    if (activeCue) {
+      subtitleEl.innerHTML = renderSubtitleWithHighlight(activeCue.text, currentlyMuting ? currentMuteWord : null);
+      subtitleEl.classList.add('visible');
     } else {
       subtitleEl.classList.remove('visible');
+    }
+
+    // Handle muting
+    if (currentlyMuting) {
+      muteAudio();
+      muteIndicator.classList.add('visible');
+      tabMute.classList.add('visible');
+      volumeIcon.innerHTML = '&#128264;';
+    } else {
+      unmuteAudio();
       muteIndicator.classList.remove('visible');
       tabMute.classList.remove('visible');
+      volumeIcon.innerHTML = '&#128266;';
     }
+
+    // Draw canvas scene
+    drawScene(elapsed);
 
     if (elapsed < TOTAL_DURATION) {
       animId = requestAnimationFrame(tick);
     } else {
       // Reset
+      playing = false;
+      playBtn.classList.remove('paused');
       subtitleEl.classList.remove('visible');
       muteIndicator.classList.remove('visible');
       tabMute.classList.remove('visible');
+      detectBadge.classList.remove('visible');
+      volumeIcon.innerHTML = '&#128266;';
+      unmuteAudio();
+      if (audioCtx) {
+        audioCtx.close();
+        audioCtx = null;
+      }
       startOverlay.classList.remove('hidden');
     }
   }
+
+  // ---- Event listeners ----
+  document.getElementById('startBtn').addEventListener('click', startDemo);
+
+  // Init on load
+  init();
 </script>
 
 </body>

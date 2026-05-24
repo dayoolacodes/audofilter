@@ -39,29 +39,19 @@
     .demo-section h2 { font-size: 2rem; margin-bottom: 8px; }
     .demo-section > p { color: rgba(255,255,255,0.6); margin-bottom: 32px; font-size: 1.05rem; }
     .demo-video {
-      max-width: 720px;
+      max-width: 900px;
       margin: 0 auto;
       border-radius: 12px;
       overflow: hidden;
       background: #000;
-      text-align: center;
-      color: rgba(255,255,255,0.4);
-      padding: 40px 20px;
-      font-size: 1rem;
+      aspect-ratio: 16/9;
     }
-    .demo-video video {
+    .demo-video iframe {
       width: 100%;
+      height: 100%;
+      border: none;
       border-radius: 12px;
     }
-    .demo-placeholder {
-      aspect-ratio: 16/9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .demo-placeholder span { font-size: 3rem; }
     .features {
       max-width: 900px; margin: 0 auto; padding: 80px 20px;
     }
@@ -112,13 +102,9 @@
 
   <section class="demo-section">
     <h2>See It In Action</h2>
-    <p>Watch AudioFilter automatically detect and mute profanity in real time.</p>
+    <p>Real WebVTT subtitle parsing and profanity detection — click play to hear it mute in real time.</p>
     <div class="demo-video">
-      <div class="demo-placeholder">
-        <span>&#127916;</span>
-        <div>Demo video coming soon</div>
-        <div style="font-size:0.85rem;">Screen record the extension working on a real video and drop the MP4 here.</div>
-      </div>
+      <iframe src="demo.html" allow="autoplay" loading="lazy"></iframe>
     </div>
   </section>
 

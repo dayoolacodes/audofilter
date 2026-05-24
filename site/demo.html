@@ -11,128 +11,128 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      flex-direction: column;
+      gap: 20px;
     }
+
+    /* URL input bar */
+    .url-bar {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 720px;
+      padding: 0 16px;
+    }
+    .url-bar input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1a1a2e;
+      color: white;
+      font-size: 14px;
+      outline: none;
+    }
+    .url-bar input::placeholder { color: #666; }
+    .url-bar input:focus { border-color: #e94560; }
+    .url-bar button {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      background: #e94560;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .url-bar button:hover { background: #d63451; }
+    .url-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Player container */
     .player {
       position: relative;
-      width: 1280px;
-      max-width: 100vw;
-      height: 720px;
-      max-height: 100vh;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      width: 100%;
+      max-width: 720px;
+      aspect-ratio: 16/9;
+      background: #000;
       overflow: hidden;
+      border-radius: 12px;
     }
-    /* Animated scene canvas */
+
+    /* YouTube iframe */
+    #ytPlayer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Canvas scene (for built-in demo) */
     #sceneCanvas {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
+      z-index: 1;
     }
-    /* Fake player controls */
-    .controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 48px;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-      z-index: 5;
-    }
-    .play-btn {
-      width: 0; height: 0;
-      border-style: solid;
-      border-width: 8px 0 8px 14px;
-      border-color: transparent transparent transparent white;
-      cursor: pointer;
-    }
-    .play-btn.paused {
-      border-width: 0;
-      width: 12px; height: 16px;
-      border-left: 4px solid white;
-      border-right: 4px solid white;
-    }
-    .progress-bar {
-      flex: 1;
-      height: 4px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 2px;
-      position: relative;
-      cursor: pointer;
-    }
-    .progress-fill {
-      height: 100%;
-      background: #e94560;
-      border-radius: 2px;
-      width: 0%;
-      transition: width 0.3s linear;
-    }
-    .time {
-      color: rgba(255,255,255,0.7);
-      font-size: 13px;
-      font-family: monospace;
-    }
-    .volume-icon {
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      user-select: none;
-      width: 24px;
-      text-align: center;
-    }
+
     /* Subtitle area */
     .subtitle {
       position: absolute;
-      bottom: 70px;
+      bottom: 50px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.75);
+      background: rgba(0,0,0,0.8);
       color: white;
-      padding: 8px 20px;
-      font-size: 28px;
+      padding: 6px 18px;
+      font-size: 22px;
       border-radius: 4px;
       text-align: center;
-      max-width: 80%;
+      max-width: 85%;
       opacity: 0;
-      transition: opacity 0.2s;
+      transition: opacity 0.15s;
       line-height: 1.4;
-      z-index: 5;
+      z-index: 10;
+      pointer-events: none;
     }
     .subtitle.visible { opacity: 1; }
+
     /* Mute indicator */
     .mute-indicator {
       position: absolute;
-      top: 56px;
-      right: 20px;
+      top: 12px;
+      right: 12px;
       background: rgba(233, 69, 96, 0.95);
       color: white;
-      padding: 8px 16px;
+      padding: 6px 14px;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       opacity: 0;
       transition: opacity 0.15s;
-      z-index: 5;
+      z-index: 10;
+      pointer-events: none;
     }
     .mute-indicator.visible { opacity: 1; }
+
     /* Detection badge */
     .detect-badge {
       position: absolute;
-      top: 56px;
-      left: 20px;
-      background: rgba(0,0,0,0.6);
-      color: rgba(255,255,255,0.6);
-      padding: 6px 12px;
+      top: 12px;
+      left: 12px;
+      background: rgba(0,0,0,0.7);
+      color: rgba(255,255,255,0.7);
+      padding: 5px 10px;
       border-radius: 6px;
       font-size: 11px;
       font-weight: 500;
-      z-index: 5;
+      z-index: 10;
       display: none;
+      pointer-events: none;
     }
     .detect-badge.visible { display: block; }
     .detect-badge .dot {
@@ -143,35 +143,90 @@
       margin-right: 6px;
       vertical-align: middle;
     }
-    /* Tab mute icon simulation */
-    .tab-bar {
+
+    /* Blocked word highlight */
+    .blocked-word {
+      color: #e94560;
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
       position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 36px;
-      background: #2d2d2d;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
       display: flex;
       align-items: center;
-      padding: 0 8px;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 20;
+      color: white;
+      font-size: 16px;
+    }
+    .loading-overlay.hidden { display: none; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #e94560;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error message */
+    .error-msg {
+      color: #e94560;
+      font-size: 12px;
+      text-align: center;
+      padding: 0 16px;
+      max-width: 720px;
+      display: none;
+    }
+    .error-msg.visible { display: block; }
+
+    /* Built-in demo controls */
+    .builtin-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 44px;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 10px;
       z-index: 5;
     }
-    .tab {
-      background: #3d3d3d;
-      color: rgba(255,255,255,0.8);
-      padding: 6px 16px;
-      border-radius: 8px 8px 0 0;
+    .play-btn {
+      width: 0; height: 0;
+      border-style: solid;
+      border-width: 7px 0 7px 12px;
+      border-color: transparent transparent transparent white;
+      cursor: pointer;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 3px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #e94560;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.3s linear;
+    }
+    .time {
+      color: rgba(255,255,255,0.7);
       font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-family: monospace;
     }
-    .tab-mute-icon {
-      font-size: 10px;
-      opacity: 0;
-      color: #e94560;
-      transition: opacity 0.15s;
-    }
-    .tab-mute-icon.visible { opacity: 1; }
-    /* Start button */
+
+    /* Start overlay for built-in demo */
     .start-overlay {
       position: absolute;
       inset: 0;
@@ -180,17 +235,17 @@
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
       cursor: pointer;
-      z-index: 10;
+      z-index: 15;
     }
     .start-overlay.hidden { display: none; }
     .start-btn {
       background: #e94560;
       color: white;
       border: none;
-      padding: 16px 40px;
-      font-size: 1.2rem;
+      padding: 14px 36px;
+      font-size: 1.1rem;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
@@ -198,61 +253,409 @@
     .start-btn:hover { background: #d63451; }
     .start-hint {
       color: rgba(255,255,255,0.5);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      text-align: center;
     }
-    /* Blocked word highlight in subtitle */
-    .blocked-word {
-      color: #e94560;
-      text-decoration: line-through;
-      text-decoration-thickness: 2px;
+
+    /* Mode hint below player */
+    .mode-hint {
+      color: #666;
+      font-size: 12px;
+      text-align: center;
+      max-width: 720px;
+      padding: 0 16px;
     }
   </style>
 </head>
 <body>
 
-<div class="player" id="player">
-  <!-- Fake tab bar -->
-  <div class="tab-bar">
-    <div class="tab">
-      <span>Movie — Streaming</span>
-      <span class="tab-mute-icon" id="tabMute">&#128263; Muted</span>
+  <!-- YouTube URL input -->
+  <div class="url-bar">
+    <input type="text" id="urlInput" placeholder="Paste any YouTube URL to try it live..." />
+    <button id="loadBtn" onclick="loadYouTube()">Load Video</button>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Player container -->
+  <div class="player" id="player">
+    <!-- Canvas for built-in demo -->
+    <canvas id="sceneCanvas"></canvas>
+
+    <!-- YouTube player target (hidden until YouTube mode) -->
+    <div id="ytPlayer" style="display:none;"></div>
+
+    <!-- Shared overlays -->
+    <div class="detect-badge" id="detectBadge">
+      <span class="dot"></span><span id="detectText">0 mute points</span>
+    </div>
+    <div class="subtitle" id="subtitle"></div>
+    <div class="mute-indicator" id="muteIndicator">&#128263; AudioFilter — Muted</div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div id="loadingText">Fetching captions...</div>
+    </div>
+
+    <!-- Built-in demo controls -->
+    <div class="builtin-controls" id="builtinControls">
+      <div class="play-btn" id="playBtn"></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+      <span class="time" id="timer">0:00 / 1:05</span>
+    </div>
+
+    <!-- Start overlay for built-in demo -->
+    <div class="start-overlay" id="startOverlay">
+      <button class="start-btn" id="startBtn">&#9654; Play Demo</button>
+      <div class="start-hint">Built-in sample with audio — or paste a YouTube URL above</div>
     </div>
   </div>
 
-  <!-- Scene canvas -->
-  <canvas id="sceneCanvas"></canvas>
-
-  <!-- Detection badge -->
-  <div class="detect-badge" id="detectBadge">
-    <span class="dot"></span>WebVTT parsed — <span id="mutePointCount">0</span> mute points detected
+  <div class="mode-hint" id="modeHint">
+    Built-in demo uses real WebVTT parsing &amp; profanity detection with audible muting
   </div>
 
-  <!-- Subtitle -->
-  <div class="subtitle" id="subtitle"></div>
-
-  <!-- Mute indicator -->
-  <div class="mute-indicator" id="muteIndicator">&#128263; AudioFilter — Muted</div>
-
-  <!-- Player controls -->
-  <div class="controls">
-    <div class="play-btn" id="playBtn"></div>
-    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progress"></div></div>
-    <span class="time" id="timer">0:00 / 1:05</span>
-    <span class="volume-icon" id="volumeIcon">&#128266;</span>
-  </div>
-
-  <!-- Start overlay -->
-  <div class="start-overlay" id="startOverlay">
-    <button class="start-btn" id="startBtn">&#9654; Play Demo</button>
-    <div class="start-hint">Audio will play — uses real WebVTT subtitles &amp; profanity detection</div>
-  </div>
-</div>
+  <!-- YouTube IFrame API -->
+  <script>
+    // Load YouTube IFrame API asynchronously
+    const ytApiReady = new Promise(resolve => {
+      window.onYouTubeIframeAPIReady = resolve;
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+    });
+  </script>
 
 <script>
   // =====================================================
-  // Real WebVTT subtitle data (standard WebVTT format)
+  // Configuration
   // =====================================================
-  const WEBVTT_DATA = `WEBVTT
+  // Set this to your deployed Cloudflare Worker URL
+  const WORKER_URL = 'https://audiofilter-captions.YOUR_SUBDOMAIN.workers.dev';
+
+  // =====================================================
+  // DOM refs
+  // =====================================================
+  const subtitleEl = document.getElementById('subtitle');
+  const muteIndicator = document.getElementById('muteIndicator');
+  const detectBadge = document.getElementById('detectBadge');
+  const detectText = document.getElementById('detectText');
+  const progressEl = document.getElementById('progress');
+  const timerEl = document.getElementById('timer');
+  const startOverlay = document.getElementById('startOverlay');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingTextEl = document.getElementById('loadingText');
+  const errorMsg = document.getElementById('errorMsg');
+  const urlInput = document.getElementById('urlInput');
+  const loadBtn = document.getElementById('loadBtn');
+  const builtinControls = document.getElementById('builtinControls');
+  const modeHint = document.getElementById('modeHint');
+  const canvasEl = document.getElementById('sceneCanvas');
+
+  // =====================================================
+  // Shared state
+  // =====================================================
+  let blockedWords = new Set();
+  let cues = [];
+  let mutePoints = [];
+  let mode = 'builtin'; // 'builtin' or 'youtube'
+
+  // =====================================================
+  // Real WebVTT parser (same logic as content.js)
+  // =====================================================
+  function parseWebVTT(text) {
+    const result = [];
+    const blocks = text.split(/\n\n+/);
+    for (const block of blocks) {
+      const lines = block.trim().split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const timeMatch = lines[i].match(
+          /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/
+        );
+        if (timeMatch) {
+          const startTime = parseVTTTime(timeMatch[1]);
+          const endTime = parseVTTTime(timeMatch[2]);
+          const content = lines.slice(i + 1).join('\n').trim();
+          if (content) {
+            result.push({ startTime, endTime, text: content });
+          }
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  function parseVTTTime(str) {
+    const p = str.replace(',', '.').match(/(\d+):(\d+):(\d+)\.(\d+)/);
+    if (!p) return 0;
+    return (parseInt(p[1]) * 3600 + parseInt(p[2]) * 60 + parseInt(p[3])) * 1000 + parseInt(p[4]);
+  }
+
+  // =====================================================
+  // Real profanity detection (same logic as content.js)
+  // =====================================================
+  function findBlockedWordInText(text) {
+    const lower = (text || '').toLowerCase().replace(/<[^>]*>/g, '');
+    if (!lower) return null;
+    let tokens;
+    try {
+      tokens = lower.match(/\p{L}+/gu) || [];
+    } catch (e) {
+      tokens = lower.match(/[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+/g) || [];
+    }
+    if (!tokens.length) return null;
+    for (let i = 0; i < tokens.length; i++) {
+      if (blockedWords.has(tokens[i])) {
+        return { word: tokens[i], index: i, totalWords: tokens.length };
+      }
+    }
+    return null;
+  }
+
+  // =====================================================
+  // Process cues into mute points (same logic as content.js)
+  // =====================================================
+  function processCues(parsedCues) {
+    const PADDING_MS = 150;
+    const points = [];
+    for (const cue of parsedCues) {
+      const match = findBlockedWordInText(cue.text);
+      if (!match) continue;
+      const cueDurationMs = cue.endTime - cue.startTime;
+      const wordFraction = match.index / match.totalWords;
+      const wordDuration = cueDurationMs / match.totalWords;
+      const wordStartMs = cue.startTime + (wordFraction * cueDurationMs) - PADDING_MS;
+      const muteDuration = wordDuration + PADDING_MS * 2;
+      points.push({
+        timeMs: Math.max(0, Math.round(wordStartMs)),
+        durationMs: Math.round(muteDuration),
+        endMs: Math.max(0, Math.round(wordStartMs)) + Math.round(muteDuration),
+        word: match.word,
+        cue,
+      });
+    }
+    return points;
+  }
+
+  // =====================================================
+  // Load blocked words
+  // =====================================================
+  async function loadBlockedWords() {
+    const paths = ['../blockedWords.json', './blockedWords.json', '/blockedWords.json'];
+    for (const path of paths) {
+      try {
+        const r = await fetch(path);
+        if (r.ok) {
+          const words = await r.json();
+          blockedWords = new Set(words.map(w => w.trim().toLowerCase()));
+          return;
+        }
+      } catch (e) {}
+    }
+    // Inline fallback
+    blockedWords = new Set([
+      'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
+      'motherfucker','motherfucking',
+      'shit','shits','shitter','shitting','shitty','shithead','bullshit','horseshit','dipshit','batshit','apeshit',
+      'bitch','bitches','bitching','bitchy',
+      'ass','asses','asshole','assholes','asshat','dumbass','jackass',
+      'damn','damned','dammit','goddamn','goddamnit',
+      'hell','hells','hellish',
+      'dick','dicks','dickhead',
+      'cock','cocks','cocksucker',
+      'pussy','pussies','cunt','cunts',
+      'bastard','bastards',
+      'piss','pissed','pissing',
+      'crap','crappy',
+      'whore','whores','slut','sluts',
+      'retard','retards','retarded',
+      'nigga','niggas','nigger','niggers',
+      'fag','fags','faggot','faggots',
+    ]);
+  }
+
+  // =====================================================
+  // Subtitle display helper
+  // =====================================================
+  function renderSubtitle(text, blockedWord) {
+    if (!blockedWord) return text.replace(/\n/g, '<br>');
+    const regex = new RegExp(`\\b(${blockedWord})\\b`, 'gi');
+    return text.replace(/\n/g, '<br>').replace(regex, '<span class="blocked-word">$1</span>');
+  }
+
+  // =====================================================
+  // YouTube URL parsing
+  // =====================================================
+  function extractVideoId(url) {
+    if (!url) return null;
+    // Handle various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([\w-]{11})/,
+      /^([\w-]{11})$/, // bare video ID
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  }
+
+  // =====================================================
+  // YOUTUBE MODE
+  // =====================================================
+  let ytPlayer = null;
+  let ytPollInterval = null;
+
+  async function loadYouTube() {
+    const videoId = extractVideoId(urlInput.value.trim());
+    if (!videoId) {
+      showError('Invalid YouTube URL. Try pasting a link like https://youtube.com/watch?v=...');
+      return;
+    }
+
+    hideError();
+    mode = 'youtube';
+
+    // Switch UI to YouTube mode
+    canvasEl.style.display = 'none';
+    builtinControls.style.display = 'none';
+    startOverlay.classList.add('hidden');
+    document.getElementById('ytPlayer').style.display = 'block';
+
+    // Show loading
+    loadingOverlay.classList.remove('hidden');
+    loadingTextEl.textContent = 'Fetching captions...';
+    loadBtn.disabled = true;
+
+    try {
+      // Fetch captions from worker
+      const workerUrl = `${WORKER_URL}?v=${videoId}`;
+      loadingTextEl.textContent = 'Fetching captions from YouTube...';
+      const response = await fetch(workerUrl);
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      // Parse the WebVTT
+      loadingTextEl.textContent = 'Parsing subtitles...';
+      cues = parseWebVTT(data.webvtt);
+      mutePoints = processCues(cues);
+
+      console.log(`AudioFilter: Parsed ${cues.length} cues, found ${mutePoints.length} mute points`);
+      mutePoints.forEach(p => {
+        console.log(`  Mute "${p.word}" at ${(p.timeMs / 1000).toFixed(1)}s for ${p.durationMs}ms`);
+      });
+
+      // Show detection badge
+      const langLabel = data.isAutoGenerated ? `${data.languageName} (auto)` : data.languageName;
+      detectText.textContent = `${mutePoints.length} mute points — ${langLabel}`;
+      detectBadge.classList.add('visible');
+
+      // Set up YouTube player
+      loadingTextEl.textContent = 'Loading video...';
+      await ytApiReady;
+
+      if (ytPlayer) {
+        ytPlayer.destroy();
+      }
+
+      ytPlayer = new YT.Player('ytPlayer', {
+        videoId: videoId,
+        playerVars: {
+          autoplay: 1,
+          cc_load_policy: 0, // don't show YouTube's own captions
+          iv_load_policy: 3, // hide annotations
+          modestbranding: 1,
+          rel: 0,
+        },
+        events: {
+          onReady: () => {
+            loadingOverlay.classList.add('hidden');
+            loadBtn.disabled = false;
+            modeHint.textContent = `YouTube mode — ${cues.length} subtitle cues loaded, ${mutePoints.length} profanity detections`;
+            startYouTubePolling();
+          },
+          onStateChange: (event) => {
+            if (event.data === YT.PlayerState.PLAYING) {
+              startYouTubePolling();
+            } else {
+              stopYouTubePolling();
+            }
+          },
+        },
+      });
+    } catch (err) {
+      loadingOverlay.classList.add('hidden');
+      loadBtn.disabled = false;
+      showError(err.message || 'Failed to load captions. Make sure the worker is deployed and the video has captions.');
+      // Revert to built-in mode
+      switchToBuiltin();
+    }
+  }
+
+  function startYouTubePolling() {
+    stopYouTubePolling();
+    ytPollInterval = setInterval(youTubeTick, 50); // 50ms for smooth detection
+  }
+
+  function stopYouTubePolling() {
+    if (ytPollInterval) {
+      clearInterval(ytPollInterval);
+      ytPollInterval = null;
+    }
+  }
+
+  function youTubeTick() {
+    if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+
+    const currentMs = ytPlayer.getCurrentTime() * 1000;
+
+    // Find active subtitle cue
+    let activeCue = null;
+    for (const cue of cues) {
+      if (currentMs >= cue.startTime && currentMs < cue.endTime) {
+        activeCue = cue;
+        break;
+      }
+    }
+
+    // Check if in a mute window
+    let currentlyMuting = false;
+    let currentMuteWord = null;
+    for (const mp of mutePoints) {
+      if (currentMs >= mp.timeMs && currentMs < mp.endMs) {
+        currentlyMuting = true;
+        currentMuteWord = mp.word;
+        break;
+      }
+    }
+
+    // Show subtitle
+    if (activeCue) {
+      subtitleEl.innerHTML = renderSubtitle(activeCue.text, currentlyMuting ? currentMuteWord : null);
+      subtitleEl.classList.add('visible');
+    } else {
+      subtitleEl.classList.remove('visible');
+    }
+
+    // Handle muting
+    if (currentlyMuting) {
+      if (!ytPlayer.isMuted()) ytPlayer.mute();
+      muteIndicator.classList.add('visible');
+    } else {
+      if (ytPlayer.isMuted()) ytPlayer.unMute();
+      muteIndicator.classList.remove('visible');
+    }
+  }
+
+  // =====================================================
+  // BUILT-IN DEMO MODE
+  // =====================================================
+  const BUILTIN_WEBVTT = `WEBVTT
 
 1
 00:00:02.000 --> 00:00:05.000
@@ -316,162 +719,57 @@ Hell yeah, let's go.
 There's a new place on Fifth Street.
 `;
 
-  // =====================================================
-  // Real WebVTT parser (same logic as content.js)
-  // =====================================================
-  function parseWebVTT(text) {
-    const cues = [];
-    const blocks = text.split(/\n\n+/);
-    for (const block of blocks) {
-      const lines = block.trim().split('\n');
-      for (let i = 0; i < lines.length; i++) {
-        const timeMatch = lines[i].match(
-          /(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})/
-        );
-        if (timeMatch) {
-          const startTime = parseVTTTime(timeMatch[1]);
-          const endTime = parseVTTTime(timeMatch[2]);
-          const content = lines.slice(i + 1).join('\n').trim();
-          if (content) {
-            cues.push({ startTime, endTime, text: content });
-          }
-          break;
-        }
-      }
-    }
-    return cues;
-  }
-
-  function parseVTTTime(str) {
-    const p = str.replace(',', '.').match(/(\d+):(\d+):(\d+)\.(\d+)/);
-    if (!p) return 0;
-    return (parseInt(p[1]) * 3600 + parseInt(p[2]) * 60 + parseInt(p[3])) * 1000
-           + parseInt(p[4]);
-  }
-
-  // =====================================================
-  // Load real blocked words list
-  // =====================================================
-  let blockedWords = new Set();
-
-  async function loadBlockedWords() {
-    const paths = ['../blockedWords.json', './blockedWords.json', '/blockedWords.json'];
-    for (const path of paths) {
-      try {
-        const r = await fetch(path);
-        if (r.ok) {
-          const words = await r.json();
-          blockedWords = new Set(words.map(w => w.trim().toLowerCase()));
-          return;
-        }
-      } catch (e) {}
-    }
-    // Inline fallback if file can't be loaded
-    blockedWords = new Set([
-      'fuck','fucks','fucked','fucker','fuckers','fucking','fuckin',
-      'motherfucker','motherfucking',
-      'shit','shits','shitter','shitting','shitty','shithead','bullshit','horseshit','dipshit','batshit','apeshit',
-      'bitch','bitches','bitching','bitchy',
-      'ass','asses','asshole','assholes','asshat','dumbass','jackass',
-      'damn','damned','dammit','goddamn','goddamnit',
-      'hell','hells','hellish',
-      'dick','dicks','dickhead',
-      'cock','cocks','cocksucker',
-      'pussy','pussies',
-      'cunt','cunts',
-      'bastard','bastards',
-      'piss','pissed','pissing',
-      'crap','crappy',
-      'whore','whores','slut','sluts',
-      'retard','retards','retarded',
-      'nigga','niggas','nigger','niggers',
-      'fag','fags','faggot','faggots',
-    ]);
-  }
-
-  // =====================================================
-  // Real profanity detection (same logic as content.js)
-  // =====================================================
-  function findBlockedWordInText(text) {
-    const lower = (text || '').toLowerCase().replace(/<[^>]*>/g, '');
-    if (!lower) return null;
-    let tokens;
-    try {
-      tokens = lower.match(/\p{L}+/gu) || [];
-    } catch (e) {
-      tokens = lower.match(/[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+/g) || [];
-    }
-    if (!tokens.length) return null;
-    for (let i = 0; i < tokens.length; i++) {
-      if (blockedWords.has(tokens[i])) {
-        return { word: tokens[i], index: i, totalWords: tokens.length };
-      }
-    }
-    return null;
-  }
-
-  // =====================================================
-  // Process cues into mute points (same logic as content.js)
-  // =====================================================
-  const PADDING_MS = 150;
-
-  function processCues(cues) {
-    const points = [];
-    for (const cue of cues) {
-      const match = findBlockedWordInText(cue.text);
-      if (!match) continue;
-
-      const cueDurationMs = cue.endTime - cue.startTime;
-      const wordFraction = match.index / match.totalWords;
-      const wordDuration = cueDurationMs / match.totalWords;
-
-      const wordStartMs = cue.startTime + (wordFraction * cueDurationMs) - PADDING_MS;
-      const muteDuration = wordDuration + (PADDING_MS * 2);
-
-      points.push({
-        timeMs: Math.max(0, Math.round(wordStartMs)),
-        durationMs: Math.round(muteDuration),
-        endMs: Math.max(0, Math.round(wordStartMs)) + Math.round(muteDuration),
-        word: match.word,
-        cue: cue
-      });
-    }
-    return points;
-  }
-
-  // =====================================================
-  // Audio engine — ambient music via Web Audio API
-  // =====================================================
+  let builtinStartTime = 0;
+  let builtinAnimId = null;
+  let builtinPlaying = false;
+  let builtinTotalDuration = 65;
   let audioCtx = null;
   let masterGain = null;
   let isMuted = false;
+  let particles = [];
+  const ctx = canvasEl.getContext('2d');
 
+  function switchToBuiltin() {
+    mode = 'builtin';
+    canvasEl.style.display = 'block';
+    builtinControls.style.display = 'flex';
+    document.getElementById('ytPlayer').style.display = 'none';
+    startOverlay.classList.remove('hidden');
+    modeHint.textContent = 'Built-in demo uses real WebVTT parsing & profanity detection with audible muting';
+  }
+
+  function initBuiltinDemo() {
+    cues = parseWebVTT(BUILTIN_WEBVTT);
+    mutePoints = processCues(cues);
+    if (cues.length > 0) {
+      builtinTotalDuration = (cues[cues.length - 1].endTime / 1000) + 2;
+    }
+  }
+
+  // Audio engine
   function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = audioCtx.createGain();
     masterGain.gain.value = 0.25;
     masterGain.connect(audioCtx.destination);
 
-    // Create a warm ambient pad (C major chord with gentle detuning)
     const notes = [
-      { freq: 130.81, type: 'sine', gain: 0.12 },    // C3
-      { freq: 164.81, type: 'sine', gain: 0.09 },    // E3
-      { freq: 196.00, type: 'sine', gain: 0.09 },    // G3
-      { freq: 261.63, type: 'sine', gain: 0.07 },    // C4
-      { freq: 329.63, type: 'triangle', gain: 0.04 }, // E4 (soft shimmer)
+      { freq: 130.81, type: 'sine', gain: 0.12 },
+      { freq: 164.81, type: 'sine', gain: 0.09 },
+      { freq: 196.00, type: 'sine', gain: 0.09 },
+      { freq: 261.63, type: 'sine', gain: 0.07 },
+      { freq: 329.63, type: 'triangle', gain: 0.04 },
     ];
 
     notes.forEach(n => {
       const osc = audioCtx.createOscillator();
       osc.type = n.type;
       osc.frequency.value = n.freq;
-      // Add slight detune for warmth
       osc.detune.value = (Math.random() - 0.5) * 8;
 
       const gain = audioCtx.createGain();
       gain.gain.value = n.gain;
 
-      // Gentle LFO for movement
       const lfo = audioCtx.createOscillator();
       const lfoGain = audioCtx.createGain();
       lfo.frequency.value = 0.15 + Math.random() * 0.2;
@@ -485,7 +783,7 @@ There's a new place on Fifth Street.
       osc.start();
     });
 
-    // Add subtle rhythm with a soft kick-like pulse
+    // Subtle pulse
     function pulseLoop() {
       if (!audioCtx || audioCtx.state === 'closed') return;
       const osc = audioCtx.createOscillator();
@@ -516,17 +814,11 @@ There's a new place on Fifth Street.
     masterGain.gain.setTargetAtTime(0.25, audioCtx.currentTime, 0.02);
   }
 
-  // =====================================================
-  // Canvas scene animation
-  // =====================================================
-  const canvas = document.getElementById('sceneCanvas');
-  const ctx = canvas.getContext('2d');
-  let particles = [];
-
+  // Canvas
   function resizeCanvas() {
     const player = document.getElementById('player');
-    canvas.width = player.clientWidth;
-    canvas.height = player.clientHeight;
+    canvasEl.width = player.clientWidth;
+    canvasEl.height = player.clientHeight;
   }
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
@@ -535,8 +827,8 @@ There's a new place on Fifth Street.
     particles = [];
     for (let i = 0; i < 40; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x: Math.random() * canvasEl.width,
+        y: Math.random() * canvasEl.height,
         vx: (Math.random() - 0.5) * 0.3,
         vy: (Math.random() - 0.5) * 0.2,
         r: Math.random() * 2 + 0.5,
@@ -547,8 +839,7 @@ There's a new place on Fifth Street.
   initParticles();
 
   function drawScene(elapsed) {
-    const w = canvas.width, h = canvas.height;
-    // Gradient background with subtle hue shift
+    const w = canvasEl.width, h = canvasEl.height;
     const hue = 220 + Math.sin(elapsed * 0.1) * 15;
     const grad = ctx.createLinearGradient(0, 0, w, h);
     grad.addColorStop(0, `hsl(${hue}, 40%, 10%)`);
@@ -557,108 +848,46 @@ There's a new place on Fifth Street.
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    // Floating particles
     for (const p of particles) {
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.x < 0) p.x = w;
-      if (p.x > w) p.x = 0;
-      if (p.y < 0) p.y = h;
-      if (p.y > h) p.y = 0;
-
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+      if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+      ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
       ctx.fill();
     }
 
-    // Subtle vignette
     const vignette = ctx.createRadialGradient(w/2, h/2, h*0.3, w/2, h/2, h*0.8);
     vignette.addColorStop(0, 'rgba(0,0,0,0)');
     vignette.addColorStop(1, 'rgba(0,0,0,0.4)');
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, w, h);
-
-    // Film grain effect (subtle)
-    if (Math.random() > 0.7) {
-      for (let i = 0; i < 20; i++) {
-        const gx = Math.random() * w;
-        const gy = Math.random() * h;
-        ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.03})`;
-        ctx.fillRect(gx, gy, 1, 1);
-      }
-    }
   }
 
-  // =====================================================
-  // Demo playback engine
-  // =====================================================
-  const subtitleEl = document.getElementById('subtitle');
-  const muteIndicator = document.getElementById('muteIndicator');
-  const tabMute = document.getElementById('tabMute');
-  const progressEl = document.getElementById('progress');
-  const timerEl = document.getElementById('timer');
-  const startOverlay = document.getElementById('startOverlay');
-  const detectBadge = document.getElementById('detectBadge');
-  const mutePointCountEl = document.getElementById('mutePointCount');
-  const playBtn = document.getElementById('playBtn');
-  const volumeIcon = document.getElementById('volumeIcon');
-
-  let cues = [];
-  let mutePoints = [];
-  let startTime = 0;
-  let animId = null;
-  let playing = false;
-  let TOTAL_DURATION = 65;
-  let scheduledMutes = new Map();
-
-  // Parse subtitles and compute mute points on load
-  async function init() {
-    await loadBlockedWords();
-    cues = parseWebVTT(WEBVTT_DATA);
-    mutePoints = processCues(cues);
-    // Set total duration from last cue end + 2s buffer
-    if (cues.length > 0) {
-      TOTAL_DURATION = (cues[cues.length - 1].endTime / 1000) + 2;
-    }
-    console.log(`AudioFilter Demo: Parsed ${cues.length} WebVTT cues, found ${mutePoints.length} mute points`);
-    mutePoints.forEach(p => {
-      console.log(`  Mute "${p.word}" at ${(p.timeMs/1000).toFixed(1)}s for ${p.durationMs}ms`);
-    });
-  }
-
-  function startDemo() {
+  function startBuiltinDemo() {
     startOverlay.classList.add('hidden');
     initAudio();
-    startTime = Date.now();
-    playing = true;
-    playBtn.classList.add('paused');
+    builtinStartTime = Date.now();
+    builtinPlaying = true;
+    detectText.textContent = `${mutePoints.length} mute points detected`;
     detectBadge.classList.add('visible');
-    mutePointCountEl.textContent = mutePoints.length;
-    scheduledMutes.clear();
-    tick();
+    builtinTick();
   }
 
-  function renderSubtitleWithHighlight(text, blockedWord) {
-    // Highlight the blocked word in the subtitle text
-    if (!blockedWord) return text.replace(/\n/g, '<br>');
-    const regex = new RegExp(`\\b(${blockedWord})\\b`, 'gi');
-    return text.replace(/\n/g, '<br>').replace(regex, '<span class="blocked-word">$1</span>');
-  }
+  function builtinTick() {
+    if (!builtinPlaying) return;
 
-  function tick() {
-    if (!playing) return;
-
-    const elapsed = (Date.now() - startTime) / 1000;
+    const elapsed = (Date.now() - builtinStartTime) / 1000;
     const elapsedMs = elapsed * 1000;
-    const pct = Math.min(100, (elapsed / TOTAL_DURATION) * 100);
+    const pct = Math.min(100, (elapsed / builtinTotalDuration) * 100);
     progressEl.style.width = pct + '%';
 
     const mins = Math.floor(elapsed / 60);
     const secs = Math.floor(elapsed % 60);
-    const totalMins = Math.floor(TOTAL_DURATION / 60);
-    const totalSecs = Math.floor(TOTAL_DURATION % 60);
-    timerEl.textContent = `${mins}:${secs.toString().padStart(2,'0')} / ${totalMins}:${totalSecs.toString().padStart(2,'0')}`;
+    const totalMins = Math.floor(builtinTotalDuration / 60);
+    const totalSecs = Math.floor(builtinTotalDuration % 60);
+    timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} / ${totalMins}:${totalSecs.toString().padStart(2, '0')}`;
 
     // Find active cue
     let activeCue = null;
@@ -669,7 +898,7 @@ There's a new place on Fifth Street.
       }
     }
 
-    // Check if currently in a mute window
+    // Check mute window
     let currentlyMuting = false;
     let currentMuteWord = null;
     for (const mp of mutePoints) {
@@ -680,54 +909,68 @@ There's a new place on Fifth Street.
       }
     }
 
-    // Show subtitle
+    // Subtitle
     if (activeCue) {
-      subtitleEl.innerHTML = renderSubtitleWithHighlight(activeCue.text, currentlyMuting ? currentMuteWord : null);
+      subtitleEl.innerHTML = renderSubtitle(activeCue.text, currentlyMuting ? currentMuteWord : null);
       subtitleEl.classList.add('visible');
     } else {
       subtitleEl.classList.remove('visible');
     }
 
-    // Handle muting
+    // Muting
     if (currentlyMuting) {
       muteAudio();
       muteIndicator.classList.add('visible');
-      tabMute.classList.add('visible');
-      volumeIcon.innerHTML = '&#128264;';
     } else {
       unmuteAudio();
       muteIndicator.classList.remove('visible');
-      tabMute.classList.remove('visible');
-      volumeIcon.innerHTML = '&#128266;';
     }
 
-    // Draw canvas scene
+    // Canvas
     drawScene(elapsed);
 
-    if (elapsed < TOTAL_DURATION) {
-      animId = requestAnimationFrame(tick);
+    if (elapsed < builtinTotalDuration) {
+      builtinAnimId = requestAnimationFrame(builtinTick);
     } else {
-      // Reset
-      playing = false;
-      playBtn.classList.remove('paused');
+      builtinPlaying = false;
       subtitleEl.classList.remove('visible');
       muteIndicator.classList.remove('visible');
-      tabMute.classList.remove('visible');
       detectBadge.classList.remove('visible');
-      volumeIcon.innerHTML = '&#128266;';
       unmuteAudio();
-      if (audioCtx) {
-        audioCtx.close();
-        audioCtx = null;
-      }
+      if (audioCtx) { audioCtx.close(); audioCtx = null; }
       startOverlay.classList.remove('hidden');
     }
   }
 
-  // ---- Event listeners ----
-  document.getElementById('startBtn').addEventListener('click', startDemo);
+  // =====================================================
+  // Error handling
+  // =====================================================
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('visible');
+  }
 
-  // Init on load
+  function hideError() {
+    errorMsg.classList.remove('visible');
+  }
+
+  // =====================================================
+  // Event listeners
+  // =====================================================
+  document.getElementById('startBtn').addEventListener('click', startBuiltinDemo);
+
+  urlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') loadYouTube();
+  });
+
+  // =====================================================
+  // Init
+  // =====================================================
+  async function init() {
+    await loadBlockedWords();
+    initBuiltinDemo();
+    console.log(`AudioFilter Demo: ${cues.length} cues, ${mutePoints.length} mute points ready`);
+  }
   init();
 </script>
 

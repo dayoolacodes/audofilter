@@ -14,55 +14,21 @@
       min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
-
-    /* URL input bar */
-    .url-bar {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-      max-width: 720px;
-      padding: 0 16px;
-    }
-    .url-bar input {
-      flex: 1;
-      padding: 12px 16px;
-      border-radius: 8px;
-      border: 1px solid #333;
-      background: #1a1a2e;
-      color: white;
-      font-size: 14px;
-      outline: none;
-    }
-    .url-bar input::placeholder { color: #666; }
-    .url-bar input:focus { border-color: #e94560; }
-    .url-bar button {
-      padding: 12px 24px;
-      border-radius: 8px;
-      border: none;
-      background: #e94560;
-      color: white;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .url-bar button:hover { background: #d63451; }
-    .url-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
 
     /* Player container */
     .player {
       position: relative;
       width: 100%;
-      max-width: 720px;
+      max-width: 800px;
       aspect-ratio: 16/9;
       background: #000;
       overflow: hidden;
       border-radius: 12px;
     }
 
-    /* YouTube iframe */
+    /* YouTube iframe fills player */
     #ytPlayer {
       position: absolute;
       inset: 0;
@@ -71,19 +37,10 @@
       z-index: 1;
     }
 
-    /* Canvas scene (for built-in demo) */
-    #sceneCanvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-
-    /* Subtitle area */
+    /* Subtitle overlay */
     .subtitle {
       position: absolute;
-      bottom: 50px;
+      bottom: 60px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0,0,0,0.8);
@@ -151,174 +108,44 @@
       text-decoration-thickness: 2px;
     }
 
-    /* Loading overlay */
-    .loading-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 16px;
-      z-index: 20;
-      color: white;
-      font-size: 16px;
-    }
-    .loading-overlay.hidden { display: none; }
-    .spinner {
-      width: 36px; height: 36px;
-      border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: #e94560;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Error message */
-    .error-msg {
-      color: #e94560;
+    /* Status bar below player */
+    .status {
+      color: #555;
       font-size: 12px;
       text-align: center;
+      max-width: 800px;
       padding: 0 16px;
-      max-width: 720px;
+    }
+
+    /* Error */
+    .error-msg {
+      color: #e94560;
+      font-size: 13px;
+      text-align: center;
+      max-width: 800px;
+      padding: 0 16px;
       display: none;
     }
     .error-msg.visible { display: block; }
-
-    /* Built-in demo controls */
-    .builtin-controls {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 44px;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      padding: 0 14px;
-      gap: 10px;
-      z-index: 5;
-    }
-    .play-btn {
-      width: 0; height: 0;
-      border-style: solid;
-      border-width: 7px 0 7px 12px;
-      border-color: transparent transparent transparent white;
-      cursor: pointer;
-    }
-    .progress-bar {
-      flex: 1;
-      height: 3px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 2px;
-    }
-    .progress-fill {
-      height: 100%;
-      background: #e94560;
-      border-radius: 2px;
-      width: 0%;
-      transition: width 0.3s linear;
-    }
-    .time {
-      color: rgba(255,255,255,0.7);
-      font-size: 12px;
-      font-family: monospace;
-    }
-
-    /* Start overlay for built-in demo */
-    .start-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 12px;
-      cursor: pointer;
-      z-index: 15;
-    }
-    .start-overlay.hidden { display: none; }
-    .start-btn {
-      background: #e94560;
-      color: white;
-      border: none;
-      padding: 14px 36px;
-      font-size: 1.1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .start-btn:hover { background: #d63451; }
-    .start-hint {
-      color: rgba(255,255,255,0.5);
-      font-size: 0.8rem;
-      text-align: center;
-    }
-
-    /* Mode hint below player */
-    .mode-hint {
-      color: #666;
-      font-size: 12px;
-      text-align: center;
-      max-width: 720px;
-      padding: 0 16px;
-    }
   </style>
 </head>
 <body>
 
-  <!-- YouTube URL input -->
-  <div class="url-bar">
-    <input type="text" id="urlInput" placeholder="Paste any YouTube URL to try it live..." />
-    <button id="loadBtn" onclick="loadYouTube()">Load Video</button>
-  </div>
-
-  <div class="error-msg" id="errorMsg"></div>
-
-  <!-- Player container -->
   <div class="player" id="player">
-    <!-- Canvas for built-in demo -->
-    <canvas id="sceneCanvas"></canvas>
+    <div id="ytPlayer"></div>
 
-    <!-- YouTube player target (hidden until YouTube mode) -->
-    <div id="ytPlayer" style="display:none;"></div>
-
-    <!-- Shared overlays -->
     <div class="detect-badge" id="detectBadge">
-      <span class="dot"></span><span id="detectText">0 mute points</span>
+      <span class="dot"></span><span id="detectText"></span>
     </div>
     <div class="subtitle" id="subtitle"></div>
     <div class="mute-indicator" id="muteIndicator">&#128263; AudioFilter — Muted</div>
-
-    <!-- Loading overlay -->
-    <div class="loading-overlay hidden" id="loadingOverlay">
-      <div class="spinner"></div>
-      <div id="loadingText">Fetching captions...</div>
-    </div>
-
-    <!-- Built-in demo controls -->
-    <div class="builtin-controls" id="builtinControls">
-      <div class="play-btn" id="playBtn"></div>
-      <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
-      <span class="time" id="timer">0:00 / 1:05</span>
-    </div>
-
-    <!-- Start overlay for built-in demo -->
-    <div class="start-overlay" id="startOverlay">
-      <button class="start-btn" id="startBtn">&#9654; Play Demo</button>
-      <div class="start-hint">Built-in sample with audio — or paste a YouTube URL above</div>
-    </div>
   </div>
 
-  <div class="mode-hint" id="modeHint">
-    Built-in demo uses real WebVTT parsing &amp; profanity detection with audible muting
-  </div>
+  <div class="status" id="status">Loading...</div>
+  <div class="error-msg" id="errorMsg"></div>
 
   <!-- YouTube IFrame API -->
   <script>
-    // Load YouTube IFrame API asynchronously
     const ytApiReady = new Promise(resolve => {
       window.onYouTubeIframeAPIReady = resolve;
       const tag = document.createElement('script');
@@ -329,10 +156,10 @@
 
 <script>
   // =====================================================
-  // Configuration
+  // Configuration — change VIDEO_ID to use a different video
   // =====================================================
-  // Set this to your deployed Cloudflare Worker URL
-  const WORKER_URL = 'https://audiofilter-captions.YOUR_SUBDOMAIN.workers.dev';
+  const VIDEO_ID = 'rzuTQZqGp8w';
+  const CAPTIONS_FILE = 'demo-video.en.vtt';
 
   // =====================================================
   // DOM refs
@@ -341,28 +168,20 @@
   const muteIndicator = document.getElementById('muteIndicator');
   const detectBadge = document.getElementById('detectBadge');
   const detectText = document.getElementById('detectText');
-  const progressEl = document.getElementById('progress');
-  const timerEl = document.getElementById('timer');
-  const startOverlay = document.getElementById('startOverlay');
-  const loadingOverlay = document.getElementById('loadingOverlay');
-  const loadingTextEl = document.getElementById('loadingText');
+  const statusEl = document.getElementById('status');
   const errorMsg = document.getElementById('errorMsg');
-  const urlInput = document.getElementById('urlInput');
-  const loadBtn = document.getElementById('loadBtn');
-  const builtinControls = document.getElementById('builtinControls');
-  const modeHint = document.getElementById('modeHint');
-  const canvasEl = document.getElementById('sceneCanvas');
 
   // =====================================================
-  // Shared state
+  // State
   // =====================================================
   let blockedWords = new Set();
   let cues = [];
   let mutePoints = [];
-  let mode = 'builtin'; // 'builtin' or 'youtube'
+  let ytPlayer = null;
+  let pollInterval = null;
 
   // =====================================================
-  // Real WebVTT parser (same logic as content.js)
+  // WebVTT parser (same logic as content.js)
   // =====================================================
   function parseWebVTT(text) {
     const result = [];
@@ -376,7 +195,9 @@
         if (timeMatch) {
           const startTime = parseVTTTime(timeMatch[1]);
           const endTime = parseVTTTime(timeMatch[2]);
-          const content = lines.slice(i + 1).join('\n').trim();
+          const content = lines.slice(i + 1).join('\n')
+            .replace(/<[^>]*>/g, '') // strip VTT tags like <c>, </c>
+            .trim();
           if (content) {
             result.push({ startTime, endTime, text: content });
           }
@@ -394,7 +215,7 @@
   }
 
   // =====================================================
-  // Real profanity detection (same logic as content.js)
+  // Profanity detection (same logic as content.js)
   // =====================================================
   function findBlockedWordInText(text) {
     const lower = (text || '').toLowerCase().replace(/<[^>]*>/g, '');
@@ -415,7 +236,7 @@
   }
 
   // =====================================================
-  // Process cues into mute points (same logic as content.js)
+  // Mute point computation (same logic as content.js)
   // =====================================================
   function processCues(parsedCues) {
     const PADDING_MS = 150;
@@ -430,7 +251,6 @@
       const muteDuration = wordDuration + PADDING_MS * 2;
       points.push({
         timeMs: Math.max(0, Math.round(wordStartMs)),
-        durationMs: Math.round(muteDuration),
         endMs: Math.max(0, Math.round(wordStartMs)) + Math.round(muteDuration),
         word: match.word,
         cue,
@@ -477,7 +297,7 @@
   }
 
   // =====================================================
-  // Subtitle display helper
+  // Subtitle rendering
   // =====================================================
   function renderSubtitle(text, blockedWord) {
     if (!blockedWord) return text.replace(/\n/g, '<br>');
@@ -486,135 +306,25 @@
   }
 
   // =====================================================
-  // YouTube URL parsing
+  // Playback polling — sync subtitles & muting to video
   // =====================================================
-  function extractVideoId(url) {
-    if (!url) return null;
-    // Handle various YouTube URL formats
-    const patterns = [
-      /(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([\w-]{11})/,
-      /^([\w-]{11})$/, // bare video ID
-    ];
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
+  function startPolling() {
+    stopPolling();
+    pollInterval = setInterval(tick, 50);
   }
 
-  // =====================================================
-  // YOUTUBE MODE
-  // =====================================================
-  let ytPlayer = null;
-  let ytPollInterval = null;
-
-  async function loadYouTube() {
-    const videoId = extractVideoId(urlInput.value.trim());
-    if (!videoId) {
-      showError('Invalid YouTube URL. Try pasting a link like https://youtube.com/watch?v=...');
-      return;
-    }
-
-    hideError();
-    mode = 'youtube';
-
-    // Switch UI to YouTube mode
-    canvasEl.style.display = 'none';
-    builtinControls.style.display = 'none';
-    startOverlay.classList.add('hidden');
-    document.getElementById('ytPlayer').style.display = 'block';
-
-    // Show loading
-    loadingOverlay.classList.remove('hidden');
-    loadingTextEl.textContent = 'Fetching captions...';
-    loadBtn.disabled = true;
-
-    try {
-      // Fetch captions from worker
-      const workerUrl = `${WORKER_URL}?v=${videoId}`;
-      loadingTextEl.textContent = 'Fetching captions from YouTube...';
-      const response = await fetch(workerUrl);
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      // Parse the WebVTT
-      loadingTextEl.textContent = 'Parsing subtitles...';
-      cues = parseWebVTT(data.webvtt);
-      mutePoints = processCues(cues);
-
-      console.log(`AudioFilter: Parsed ${cues.length} cues, found ${mutePoints.length} mute points`);
-      mutePoints.forEach(p => {
-        console.log(`  Mute "${p.word}" at ${(p.timeMs / 1000).toFixed(1)}s for ${p.durationMs}ms`);
-      });
-
-      // Show detection badge
-      const langLabel = data.isAutoGenerated ? `${data.languageName} (auto)` : data.languageName;
-      detectText.textContent = `${mutePoints.length} mute points — ${langLabel}`;
-      detectBadge.classList.add('visible');
-
-      // Set up YouTube player
-      loadingTextEl.textContent = 'Loading video...';
-      await ytApiReady;
-
-      if (ytPlayer) {
-        ytPlayer.destroy();
-      }
-
-      ytPlayer = new YT.Player('ytPlayer', {
-        videoId: videoId,
-        playerVars: {
-          autoplay: 1,
-          cc_load_policy: 0, // don't show YouTube's own captions
-          iv_load_policy: 3, // hide annotations
-          modestbranding: 1,
-          rel: 0,
-        },
-        events: {
-          onReady: () => {
-            loadingOverlay.classList.add('hidden');
-            loadBtn.disabled = false;
-            modeHint.textContent = `YouTube mode — ${cues.length} subtitle cues loaded, ${mutePoints.length} profanity detections`;
-            startYouTubePolling();
-          },
-          onStateChange: (event) => {
-            if (event.data === YT.PlayerState.PLAYING) {
-              startYouTubePolling();
-            } else {
-              stopYouTubePolling();
-            }
-          },
-        },
-      });
-    } catch (err) {
-      loadingOverlay.classList.add('hidden');
-      loadBtn.disabled = false;
-      showError(err.message || 'Failed to load captions. Make sure the worker is deployed and the video has captions.');
-      // Revert to built-in mode
-      switchToBuiltin();
+  function stopPolling() {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
     }
   }
 
-  function startYouTubePolling() {
-    stopYouTubePolling();
-    ytPollInterval = setInterval(youTubeTick, 50); // 50ms for smooth detection
-  }
-
-  function stopYouTubePolling() {
-    if (ytPollInterval) {
-      clearInterval(ytPollInterval);
-      ytPollInterval = null;
-    }
-  }
-
-  function youTubeTick() {
+  function tick() {
     if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
-
     const currentMs = ytPlayer.getCurrentTime() * 1000;
 
-    // Find active subtitle cue
+    // Find active cue
     let activeCue = null;
     for (const cue of cues) {
       if (currentMs >= cue.startTime && currentMs < cue.endTime) {
@@ -624,26 +334,26 @@
     }
 
     // Check if in a mute window
-    let currentlyMuting = false;
-    let currentMuteWord = null;
+    let muting = false;
+    let muteWord = null;
     for (const mp of mutePoints) {
       if (currentMs >= mp.timeMs && currentMs < mp.endMs) {
-        currentlyMuting = true;
-        currentMuteWord = mp.word;
+        muting = true;
+        muteWord = mp.word;
         break;
       }
     }
 
     // Show subtitle
     if (activeCue) {
-      subtitleEl.innerHTML = renderSubtitle(activeCue.text, currentlyMuting ? currentMuteWord : null);
+      subtitleEl.innerHTML = renderSubtitle(activeCue.text, muting ? muteWord : null);
       subtitleEl.classList.add('visible');
     } else {
       subtitleEl.classList.remove('visible');
     }
 
     // Handle muting
-    if (currentlyMuting) {
+    if (muting) {
       if (!ytPlayer.isMuted()) ytPlayer.mute();
       muteIndicator.classList.add('visible');
     } else {
@@ -653,324 +363,66 @@
   }
 
   // =====================================================
-  // BUILT-IN DEMO MODE
-  // =====================================================
-  const BUILTIN_WEBVTT = `WEBVTT
-
-1
-00:00:02.000 --> 00:00:05.000
-Hey, how's it going?
-
-2
-00:00:06.000 --> 00:00:09.000
-Not bad. Just got back from work.
-
-3
-00:00:10.000 --> 00:00:13.000
-Man, the traffic was terrible today.
-
-4
-00:00:14.000 --> 00:00:18.000
-I know, right? Took me two hours
-to get home.
-
-5
-00:00:19.000 --> 00:00:22.000
-That's fucking ridiculous.
-
-6
-00:00:24.000 --> 00:00:27.500
-Yeah, and then my boss calls me
-at like 9 PM.
-
-7
-00:00:28.000 --> 00:00:31.000
-Are you serious? What did he want?
-
-8
-00:00:32.000 --> 00:00:36.000
-He wanted me to redo the whole
-presentation by morning.
-
-9
-00:00:37.000 --> 00:00:40.000
-What a load of bullshit.
-
-10
-00:00:42.000 --> 00:00:45.000
-I told him I'd do it tomorrow.
-
-11
-00:00:46.000 --> 00:00:49.500
-Good for you. He can't keep
-pulling that shit.
-
-12
-00:00:51.000 --> 00:00:55.000
-Anyway, you wanna grab some food?
-I'm starving.
-
-13
-00:00:56.000 --> 00:00:59.000
-Hell yeah, let's go.
-
-14
-00:01:00.000 --> 00:01:03.000
-There's a new place on Fifth Street.
-`;
-
-  let builtinStartTime = 0;
-  let builtinAnimId = null;
-  let builtinPlaying = false;
-  let builtinTotalDuration = 65;
-  let audioCtx = null;
-  let masterGain = null;
-  let isMuted = false;
-  let particles = [];
-  const ctx = canvasEl.getContext('2d');
-
-  function switchToBuiltin() {
-    mode = 'builtin';
-    canvasEl.style.display = 'block';
-    builtinControls.style.display = 'flex';
-    document.getElementById('ytPlayer').style.display = 'none';
-    startOverlay.classList.remove('hidden');
-    modeHint.textContent = 'Built-in demo uses real WebVTT parsing & profanity detection with audible muting';
-  }
-
-  function initBuiltinDemo() {
-    cues = parseWebVTT(BUILTIN_WEBVTT);
-    mutePoints = processCues(cues);
-    if (cues.length > 0) {
-      builtinTotalDuration = (cues[cues.length - 1].endTime / 1000) + 2;
-    }
-  }
-
-  // Audio engine
-  function initAudio() {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.25;
-    masterGain.connect(audioCtx.destination);
-
-    const notes = [
-      { freq: 130.81, type: 'sine', gain: 0.12 },
-      { freq: 164.81, type: 'sine', gain: 0.09 },
-      { freq: 196.00, type: 'sine', gain: 0.09 },
-      { freq: 261.63, type: 'sine', gain: 0.07 },
-      { freq: 329.63, type: 'triangle', gain: 0.04 },
-    ];
-
-    notes.forEach(n => {
-      const osc = audioCtx.createOscillator();
-      osc.type = n.type;
-      osc.frequency.value = n.freq;
-      osc.detune.value = (Math.random() - 0.5) * 8;
-
-      const gain = audioCtx.createGain();
-      gain.gain.value = n.gain;
-
-      const lfo = audioCtx.createOscillator();
-      const lfoGain = audioCtx.createGain();
-      lfo.frequency.value = 0.15 + Math.random() * 0.2;
-      lfoGain.gain.value = n.gain * 0.3;
-      lfo.connect(lfoGain);
-      lfoGain.connect(gain.gain);
-      lfo.start();
-
-      osc.connect(gain);
-      gain.connect(masterGain);
-      osc.start();
-    });
-
-    // Subtle pulse
-    function pulseLoop() {
-      if (!audioCtx || audioCtx.state === 'closed') return;
-      const osc = audioCtx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = 60;
-      const env = audioCtx.createGain();
-      env.gain.value = 0;
-      env.gain.setValueAtTime(0.06, audioCtx.currentTime);
-      env.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-      osc.connect(env);
-      env.connect(masterGain);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.5);
-      setTimeout(pulseLoop, 2000);
-    }
-    setTimeout(pulseLoop, 1000);
-  }
-
-  function muteAudio() {
-    if (!masterGain || isMuted) return;
-    isMuted = true;
-    masterGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.02);
-  }
-
-  function unmuteAudio() {
-    if (!masterGain || !isMuted) return;
-    isMuted = false;
-    masterGain.gain.setTargetAtTime(0.25, audioCtx.currentTime, 0.02);
-  }
-
-  // Canvas
-  function resizeCanvas() {
-    const player = document.getElementById('player');
-    canvasEl.width = player.clientWidth;
-    canvasEl.height = player.clientHeight;
-  }
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-
-  function initParticles() {
-    particles = [];
-    for (let i = 0; i < 40; i++) {
-      particles.push({
-        x: Math.random() * canvasEl.width,
-        y: Math.random() * canvasEl.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.2,
-        r: Math.random() * 2 + 0.5,
-        alpha: Math.random() * 0.3 + 0.1,
-      });
-    }
-  }
-  initParticles();
-
-  function drawScene(elapsed) {
-    const w = canvasEl.width, h = canvasEl.height;
-    const hue = 220 + Math.sin(elapsed * 0.1) * 15;
-    const grad = ctx.createLinearGradient(0, 0, w, h);
-    grad.addColorStop(0, `hsl(${hue}, 40%, 10%)`);
-    grad.addColorStop(0.5, `hsl(${hue + 20}, 35%, 14%)`);
-    grad.addColorStop(1, `hsl(${hue + 40}, 45%, 18%)`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
-
-    for (const p of particles) {
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
-      if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
-      ctx.fill();
-    }
-
-    const vignette = ctx.createRadialGradient(w/2, h/2, h*0.3, w/2, h/2, h*0.8);
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(0,0,0,0.4)');
-    ctx.fillStyle = vignette;
-    ctx.fillRect(0, 0, w, h);
-  }
-
-  function startBuiltinDemo() {
-    startOverlay.classList.add('hidden');
-    initAudio();
-    builtinStartTime = Date.now();
-    builtinPlaying = true;
-    detectText.textContent = `${mutePoints.length} mute points detected`;
-    detectBadge.classList.add('visible');
-    builtinTick();
-  }
-
-  function builtinTick() {
-    if (!builtinPlaying) return;
-
-    const elapsed = (Date.now() - builtinStartTime) / 1000;
-    const elapsedMs = elapsed * 1000;
-    const pct = Math.min(100, (elapsed / builtinTotalDuration) * 100);
-    progressEl.style.width = pct + '%';
-
-    const mins = Math.floor(elapsed / 60);
-    const secs = Math.floor(elapsed % 60);
-    const totalMins = Math.floor(builtinTotalDuration / 60);
-    const totalSecs = Math.floor(builtinTotalDuration % 60);
-    timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')} / ${totalMins}:${totalSecs.toString().padStart(2, '0')}`;
-
-    // Find active cue
-    let activeCue = null;
-    for (const cue of cues) {
-      if (elapsedMs >= cue.startTime && elapsedMs < cue.endTime) {
-        activeCue = cue;
-        break;
-      }
-    }
-
-    // Check mute window
-    let currentlyMuting = false;
-    let currentMuteWord = null;
-    for (const mp of mutePoints) {
-      if (elapsedMs >= mp.timeMs && elapsedMs < mp.endMs) {
-        currentlyMuting = true;
-        currentMuteWord = mp.word;
-        break;
-      }
-    }
-
-    // Subtitle
-    if (activeCue) {
-      subtitleEl.innerHTML = renderSubtitle(activeCue.text, currentlyMuting ? currentMuteWord : null);
-      subtitleEl.classList.add('visible');
-    } else {
-      subtitleEl.classList.remove('visible');
-    }
-
-    // Muting
-    if (currentlyMuting) {
-      muteAudio();
-      muteIndicator.classList.add('visible');
-    } else {
-      unmuteAudio();
-      muteIndicator.classList.remove('visible');
-    }
-
-    // Canvas
-    drawScene(elapsed);
-
-    if (elapsed < builtinTotalDuration) {
-      builtinAnimId = requestAnimationFrame(builtinTick);
-    } else {
-      builtinPlaying = false;
-      subtitleEl.classList.remove('visible');
-      muteIndicator.classList.remove('visible');
-      detectBadge.classList.remove('visible');
-      unmuteAudio();
-      if (audioCtx) { audioCtx.close(); audioCtx = null; }
-      startOverlay.classList.remove('hidden');
-    }
-  }
-
-  // =====================================================
-  // Error handling
-  // =====================================================
-  function showError(msg) {
-    errorMsg.textContent = msg;
-    errorMsg.classList.add('visible');
-  }
-
-  function hideError() {
-    errorMsg.classList.remove('visible');
-  }
-
-  // =====================================================
-  // Event listeners
-  // =====================================================
-  document.getElementById('startBtn').addEventListener('click', startBuiltinDemo);
-
-  urlInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') loadYouTube();
-  });
-
-  // =====================================================
   // Init
   // =====================================================
   async function init() {
+    statusEl.textContent = 'Loading blocked words...';
     await loadBlockedWords();
-    initBuiltinDemo();
-    console.log(`AudioFilter Demo: ${cues.length} cues, ${mutePoints.length} mute points ready`);
+
+    // Load pre-fetched VTT captions
+    statusEl.textContent = 'Loading captions...';
+    try {
+      const vttResponse = await fetch(CAPTIONS_FILE);
+      if (!vttResponse.ok) throw new Error(`Could not load ${CAPTIONS_FILE}`);
+      const vttText = await vttResponse.text();
+
+      cues = parseWebVTT(vttText);
+      mutePoints = processCues(cues);
+
+      console.log(`AudioFilter Demo: ${cues.length} cues, ${mutePoints.length} mute points`);
+      mutePoints.forEach(p => {
+        console.log(`  Mute "${p.word}" at ${(p.timeMs / 1000).toFixed(1)}s`);
+      });
+
+      detectText.textContent = `${cues.length} cues parsed — ${mutePoints.length} mute points`;
+      detectBadge.classList.add('visible');
+    } catch (err) {
+      errorMsg.textContent = `Caption load failed: ${err.message}. Run ./fetch-captions.sh to download captions.`;
+      errorMsg.classList.add('visible');
+      statusEl.textContent = 'Captions not available — video will play without filtering';
+    }
+
+    // Set up YouTube player
+    statusEl.textContent = 'Loading YouTube player...';
+    await ytApiReady;
+
+    ytPlayer = new YT.Player('ytPlayer', {
+      videoId: VIDEO_ID,
+      playerVars: {
+        autoplay: 0,
+        cc_load_policy: 0,
+        iv_load_policy: 3,
+        modestbranding: 1,
+        rel: 0,
+      },
+      events: {
+        onReady: () => {
+          statusEl.textContent = mutePoints.length > 0
+            ? `Ready — ${mutePoints.length} profanity mute points detected. Press play.`
+            : 'Ready — press play.';
+        },
+        onStateChange: (event) => {
+          if (event.data === YT.PlayerState.PLAYING) {
+            startPolling();
+            statusEl.textContent = `Playing — ${mutePoints.length} mute points active`;
+          } else {
+            stopPolling();
+          }
+        },
+      },
+    });
   }
+
   init();
 </script>
 

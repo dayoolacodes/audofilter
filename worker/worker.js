@@ -1,9 +1,8 @@
 // Cloudflare Worker — fetches YouTube captions and returns WebVTT
-// Deploy with: npx wrangler deploy worker.js --name audiofilter-captions
+// Deploy with: npx wrangler deploy
 
 export default {
   async fetch(request) {
-    // CORS headers
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -19,106 +18,61 @@ export default {
     const lang = url.searchParams.get('lang') || 'en';
 
     if (!videoId || !/^[\w-]{11}$/.test(videoId)) {
-      return new Response(JSON.stringify({ error: 'Missing or invalid video ID. Use ?v=VIDEO_ID' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'Missing or invalid video ID. Use ?v=VIDEO_ID' }, 400, corsHeaders);
     }
 
     try {
       const result = await getYouTubeCaptions(videoId, lang);
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(result, 200, corsHeaders);
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: err.message }, 500, corsHeaders);
     }
   },
 };
 
-async function getYouTubeCaptions(videoId, lang) {
-  // Step 1: Fetch the YouTube watch page
-  const pageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
+function jsonResponse(data, status, corsHeaders) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
 
-  if (!pageResponse.ok) {
-    throw new Error(`YouTube returned ${pageResponse.status}`);
-  }
+const COMMON_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Cookie': 'CONSENT=YES+cb; SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjQwNjA0LjA3X3AwGgJlbiACGgYIgJnZsgY',
+};
 
-  const html = await pageResponse.text();
+async function getYouTubeCaptions(videoId, lang) {
+  // Try Innertube API first (more reliable, less rate-limited), fall back to page scraping
+  let captionTracks = null;
 
-  // Step 2: Extract ytInitialPlayerResponse JSON
-  const startMarker = 'var ytInitialPlayerResponse = ';
-  let startIndex = html.indexOf(startMarker);
-
-  if (startIndex === -1) {
-    // Try alternate pattern (sometimes it's set differently)
-    const altMarker = 'ytInitialPlayerResponse = ';
-    startIndex = html.indexOf(altMarker);
-    if (startIndex === -1) {
-      throw new Error('Could not find player response in page');
-    }
-    startIndex += altMarker.length;
-  } else {
-    startIndex += startMarker.length;
-  }
-
-  // Find the JSON object by counting braces
-  let depth = 0;
-  let end = startIndex;
-  for (; end < html.length; end++) {
-    if (html[end] === '{') depth++;
-    else if (html[end] === '}') {
-      depth--;
-      if (depth === 0) { end++; break; }
-    }
-  }
-
-  let playerResponse;
   try {
-    playerResponse = JSON.parse(html.substring(startIndex, end));
+    captionTracks = await getCaptionTracksFromInnertube(videoId);
   } catch (e) {
-    throw new Error('Failed to parse player response JSON');
+    // Fall back to page scraping
   }
 
-  // Step 3: Extract caption tracks
-  const captionTracks =
-    playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  if (!captionTracks) {
+    captionTracks = await getCaptionTracksFromPage(videoId);
+  }
 
   if (!captionTracks || captionTracks.length === 0) {
     throw new Error('No captions available for this video');
   }
 
-  // Step 4: Find best matching language track
-  // Prefer manual captions over auto-generated (kind !== 'asr')
+  // Find best matching language track (prefer manual over auto-generated)
   let track = captionTracks.find(t => t.languageCode === lang && t.kind !== 'asr');
   if (!track) track = captionTracks.find(t => t.languageCode === lang);
   if (!track) track = captionTracks.find(t => t.languageCode.startsWith(lang.split('-')[0]));
-  if (!track) track = captionTracks[0]; // fallback
+  if (!track) track = captionTracks[0];
 
-  // Step 5: Fetch caption data in json3 format
-  const captionUrl = track.baseUrl + '&fmt=json3';
-  const captionResponse = await fetch(captionUrl, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    },
-  });
+  // Fetch caption content
+  const webvtt = await fetchCaptionContent(track.baseUrl);
 
-  if (!captionResponse.ok) {
-    throw new Error(`Caption fetch failed: ${captionResponse.status}`);
+  if (!webvtt || webvtt.trim() === 'WEBVTT') {
+    throw new Error('Captions were empty. Video may not have subtitles in the requested language.');
   }
-
-  const captionData = await captionResponse.json();
-
-  // Step 6: Convert to WebVTT
-  const webvtt = convertToWebVTT(captionData);
 
   return {
     webvtt,
@@ -133,46 +87,162 @@ async function getYouTubeCaptions(videoId, lang) {
   };
 }
 
-function convertToWebVTT(captionData) {
+// ---- Method 1: Innertube API (no page scraping) ----
+async function getCaptionTracksFromInnertube(videoId) {
+  // Use the WEB client — Android client sometimes doesn't return captions
+  const response = await fetch('https://www.youtube.com/youtubei/v1/player', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...COMMON_HEADERS,
+    },
+    body: JSON.stringify({
+      videoId,
+      context: {
+        client: {
+          clientName: 'WEB',
+          clientVersion: '2.20250520.00.00',
+          hl: 'en',
+        },
+      },
+    }),
+  });
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+  return tracks && tracks.length > 0 ? tracks : null;
+}
+
+// ---- Method 2: Scrape watch page ----
+async function getCaptionTracksFromPage(videoId) {
+  const response = await fetch(`https://www.youtube.com/watch?v=${videoId}&hl=en`, {
+    headers: COMMON_HEADERS,
+    redirect: 'follow',
+  });
+
+  if (!response.ok) {
+    throw new Error(`YouTube returned ${response.status}`);
+  }
+
+  const html = await response.text();
+
+  // Extract ytInitialPlayerResponse
+  const markers = ['var ytInitialPlayerResponse = ', 'ytInitialPlayerResponse = '];
+  let startIndex = -1;
+
+  for (const marker of markers) {
+    const idx = html.indexOf(marker);
+    if (idx !== -1) {
+      startIndex = idx + marker.length;
+      break;
+    }
+  }
+
+  if (startIndex === -1) {
+    throw new Error('Could not find player response in page');
+  }
+
+  // Find JSON object by counting braces
+  let depth = 0;
+  let end = startIndex;
+  for (; end < html.length; end++) {
+    if (html[end] === '{') depth++;
+    else if (html[end] === '}') {
+      depth--;
+      if (depth === 0) { end++; break; }
+    }
+  }
+
+  const playerResponse = JSON.parse(html.substring(startIndex, end));
+  return playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+}
+
+// ---- Fetch and convert caption content ----
+async function fetchCaptionContent(baseUrl) {
+  // Try json3 first
+  try {
+    const json3Response = await fetch(baseUrl + '&fmt=json3', { headers: COMMON_HEADERS });
+    if (json3Response.ok) {
+      const text = await json3Response.text();
+      if (text && text.startsWith('{')) {
+        return convertJson3ToWebVTT(JSON.parse(text));
+      }
+    }
+  } catch (e) {}
+
+  // Try vtt format directly
+  try {
+    const vttResponse = await fetch(baseUrl + '&fmt=vtt', { headers: COMMON_HEADERS });
+    if (vttResponse.ok) {
+      const vttText = await vttResponse.text();
+      if (vttText && vttText.includes('-->')) {
+        return vttText;
+      }
+    }
+  } catch (e) {}
+
+  // Try default XML format
+  const xmlResponse = await fetch(baseUrl, { headers: COMMON_HEADERS });
+  if (!xmlResponse.ok) {
+    throw new Error(`Caption fetch failed: ${xmlResponse.status}`);
+  }
+  const xmlText = await xmlResponse.text();
+  if (!xmlText) {
+    throw new Error('Caption response was empty');
+  }
+  return convertXmlToWebVTT(xmlText);
+}
+
+// ---- Format converters ----
+
+function convertJson3ToWebVTT(captionData) {
   const events = captionData?.events || [];
   let vtt = 'WEBVTT\n\n';
   let cueIndex = 1;
 
   for (const event of events) {
-    // Skip events without text segments (timing markers)
     if (!event.segs) continue;
-
-    const text = event.segs
-      .map(seg => seg.utf8 || '')
-      .join('')
-      .trim()
-      .replace(/\n{2,}/g, '\n');
-
+    const text = event.segs.map(seg => seg.utf8 || '').join('').trim().replace(/\n{2,}/g, '\n');
     if (!text) continue;
 
     const startMs = event.tStartMs || 0;
-    const durationMs = event.dDurationMs || 0;
-    const endMs = startMs + durationMs;
+    const endMs = startMs + (event.dDurationMs || 0);
 
-    vtt += `${cueIndex}\n`;
-    vtt += `${msToVttTime(startMs)} --> ${msToVttTime(endMs)}\n`;
-    vtt += `${text}\n\n`;
+    vtt += `${cueIndex}\n${msToVttTime(startMs)} --> ${msToVttTime(endMs)}\n${text}\n\n`;
     cueIndex++;
   }
+  return vtt;
+}
 
+function convertXmlToWebVTT(xmlText) {
+  let vtt = 'WEBVTT\n\n';
+  let cueIndex = 1;
+
+  const regex = /<text\s+start="([^"]+)"\s+dur="([^"]+)"[^>]*>([\s\S]*?)<\/text>/g;
+  let match;
+
+  while ((match = regex.exec(xmlText)) !== null) {
+    const startSec = parseFloat(match[1]);
+    const durSec = parseFloat(match[2]);
+    const text = match[3]
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/<[^>]*>/g, '').trim();
+
+    if (!text) continue;
+
+    vtt += `${cueIndex}\n${msToVttTime(Math.round(startSec * 1000))} --> ${msToVttTime(Math.round((startSec + durSec) * 1000))}\n${text}\n\n`;
+    cueIndex++;
+  }
   return vtt;
 }
 
 function msToVttTime(ms) {
-  const hours = Math.floor(ms / 3600000);
-  const minutes = Math.floor((ms % 3600000) / 60000);
-  const seconds = Math.floor((ms % 60000) / 1000);
-  const millis = ms % 1000;
-
-  return (
-    String(hours).padStart(2, '0') + ':' +
-    String(minutes).padStart(2, '0') + ':' +
-    String(seconds).padStart(2, '0') + '.' +
-    String(millis).padStart(3, '0')
-  );
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const ms_ = ms % 1000;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(ms_).padStart(3,'0')}`;
 }

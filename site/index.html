@@ -5,151 +5,152 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AudioFilter — Profanity Filter for Video Subtitles</title>
   <meta name="description" content="Free Chrome extension that automatically mutes audio when profanity appears in video subtitles. Works on Netflix, Prime Video, Disney+, and more.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      color: #1a1a2e;
-      background: #f8f9fa;
-      line-height: 1.6;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f0e8;
+      color: #1a1a1a;
     }
+
+    /* Nav */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 48px;
+      background: white;
+      border-bottom: 1px solid #e8e3da;
+    }
+    .nav-logo {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: #1a1a1a;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-logo span {
+      color: #e94560;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-links a {
+      color: #1a1a1a;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .nav-links a:hover {
+      color: #e94560;
+    }
+    .nav-cta {
+      background: #1a1a1a;
+      color: white !important;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 600 !important;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover {
+      background: #333 !important;
+      color: white !important;
+    }
+
+    /* Hero */
     .hero {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      color: white;
-      padding: 80px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       text-align: center;
+      height: calc(100vh - 73px);
+      padding: 0 24px;
     }
-    .hero h1 { font-size: 3rem; margin-bottom: 16px; font-weight: 700; }
-    .hero p { font-size: 1.25rem; opacity: 0.9; max-width: 600px; margin: 0 auto 32px; }
-    .buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-    .btn {
-      display: inline-block; padding: 14px 32px; border-radius: 8px;
-      text-decoration: none; font-weight: 600; font-size: 1rem;
+    .hero h1 {
+      font-family: 'Lato', sans-serif;
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      font-weight: 400;
+      line-height: 1.1;
+      margin-bottom: 24px;
+      max-width: 800px;
+    }
+    .hero h1 strong {
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: #b8a99a;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: #666;
+      max-width: 580px;
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #1a1a1a;
+      color: white;
+      padding: 16px 36px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1rem;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    .btn-primary { background: #e94560; color: white; }
-    .btn-secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
-    .features {
-      max-width: 900px; margin: 0 auto; padding: 80px 20px;
+    .hero-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
     }
-    .features h2 { text-align: center; font-size: 2rem; margin-bottom: 48px; }
-    .grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px;
+    .hero-sub {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: #999;
     }
-    .card {
-      background: white; border-radius: 12px; padding: 28px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+
+    @media (max-width: 768px) {
+      nav { padding: 16px 20px; }
+      .nav-links { gap: 16px; }
+      .nav-links a:not(.nav-cta) { display: none; }
     }
-    .card h3 { font-size: 1.1rem; margin-bottom: 8px; }
-    .card p { color: #555; font-size: 0.95rem; }
-    .card-icon { font-size: 2rem; margin-bottom: 12px; }
-    .how-it-works { background: white; padding: 80px 20px; }
-    .how-it-works h2 { text-align: center; font-size: 2rem; margin-bottom: 48px; }
-    .steps { max-width: 700px; margin: 0 auto; }
-    .step { display: flex; gap: 20px; margin-bottom: 32px; align-items: flex-start; }
-    .step-num {
-      background: #e94560; color: white; width: 36px; height: 36px;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-weight: 700; flex-shrink: 0;
-    }
-    .step h3 { margin-bottom: 4px; }
-    .step p { color: #555; font-size: 0.95rem; }
-    .open-source {
-      max-width: 700px; margin: 0 auto; padding: 80px 20px; text-align: center;
-    }
-    .open-source h2 { font-size: 2rem; margin-bottom: 16px; }
-    .open-source p { color: #555; margin-bottom: 24px; font-size: 1.05rem; }
-    footer {
-      text-align: center; padding: 32px 20px; color: #888;
-      font-size: 0.85rem; border-top: 1px solid #eee;
-    }
-    footer a { color: #e94560; text-decoration: none; }
   </style>
 </head>
 <body>
 
+  <nav>
+    <a href="/" class="nav-logo">
+      <span>&#9835;</span> AudioFilter
+    </a>
+    <div class="nav-links">
+      <a href="https://github.com/dayoolacodes/audofilter">GitHub</a>
+      <a href="https://github.com/dayoolacodes/audofilter/blob/main/PRIVACY.md">Privacy</a>
+      <a href="#" class="nav-cta">Add to Chrome</a>
+    </div>
+  </nav>
+
   <section class="hero">
-    <h1>AudioFilter</h1>
-    <p>Free Chrome extension that automatically mutes audio when profanity appears in video subtitles. Works on Netflix, Prime Video, Disney+, and more.</p>
-    <div class="buttons">
-      <a href="#" class="btn btn-primary">Add to Chrome — Free</a>
-      <a href="https://github.com/dayoolacodes/audofilter" class="btn btn-secondary">View on GitHub</a>
-    </div>
+    <h1><em>Hear it clean.</em> <strong>It's filtered.</strong></h1>
+    <p>Profanity in subtitles is detected and the audio muted instantly. The movie keeps playing, minus the words you'd rather skip. Netflix, Prime Video, Disney+, and more.</p>
+    <a href="#" class="hero-cta">Add to Chrome &mdash; Free</a>
+    <div class="hero-sub">Available on Chrome. Open source. No data collected.</div>
   </section>
-
-  <section class="features">
-    <h2>Features</h2>
-    <div class="grid">
-      <div class="card">
-        <div class="card-icon">&#127925;</div>
-        <h3>Smart Muting</h3>
-        <p>Intercepts subtitle files to pre-schedule mutes with precise timing. Falls back to on-screen subtitle detection.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">&#127760;</div>
-        <h3>Streaming Support</h3>
-        <p>Netflix, Prime Video, Disney+, Hulu, and other major streaming services.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">&#9881;</div>
-        <h3>Customizable</h3>
-        <p>Add or remove blocked words. Adjust mute duration and timing. Your settings sync across devices.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">&#128274;</div>
-        <h3>Private</h3>
-        <p>Everything runs locally in your browser. No data collected, no servers, no tracking. Fully open source.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">&#128176;</div>
-        <h3>100% Free</h3>
-        <p>No subscription, no ads, no premium tier. Free forever.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">&#9889;</div>
-        <h3>DRM Safe</h3>
-        <p>Uses tab-level muting instead of touching video elements, so streaming services work without issues.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="how-it-works">
-    <h2>How It Works</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div>
-          <h3>Install the extension</h3>
-          <p>Add AudioFilter from the Chrome Web Store. Enable it and you're ready to go.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div>
-          <h3>Turn on subtitles</h3>
-          <p>Enable subtitles/captions on any video. AudioFilter reads the subtitle text to detect profanity.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div>
-          <h3>Watch clean</h3>
-          <p>When a blocked word appears, the tab audio is automatically muted for the duration of the word.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="open-source">
-    <h2>Open Source</h2>
-    <p>AudioFilter is fully open source under the MIT license. Inspect the code, contribute features, or fork it for your own use.</p>
-    <a href="https://github.com/dayoolacodes/audofilter" class="btn btn-primary" style="background:#1a1a2e;">View on GitHub</a>
-  </section>
-
-  <footer>
-    <p>AudioFilter &mdash; <a href="https://github.com/dayoolacodes/audofilter/blob/main/PRIVACY.md">Privacy Policy</a> &middot; <a href="https://github.com/dayoolacodes/audofilter">GitHub</a></p>
-  </footer>
 
 </body>
 </html>

@@ -104,66 +104,86 @@ function stopCapture() {
   });
 }
 
-// ---- Live simulation ----
-const SIM_LINES = [
-  { text: "You think you can just walk in here?", word: null },
-  { text: "I told you, I don't want any trouble.", word: null },
-  { text: "Trouble? You don't know what fucking trouble is.", word: "fucking" },
-  { text: "Listen, I paid what I owe.", word: null },
-  { text: "That's what you said last week, asshole.", word: "asshole" },
-  { text: "Things have been rough, you know that.", word: null },
-  { text: "I don't give a shit about your problems.", word: "shit" },
-  { text: "We had a deal and you're gonna stick to it.", word: null },
-  { text: "Or what? What the fuck are you gonna do?", word: "fuck" },
-  { text: "You really don't want to find out.", word: null },
-  { text: "That's a load of bullshit and you know it.", word: "bullshit" },
-  { text: "I'm done talking. Let's go.", word: null },
-];
+// ---- Waveform visualizer ----
+let waveActive = false;
+let waveMuted = false;
 
-function runSim() {
-  const sub = $('simSub');
-  const badge = $('simBadge');
-  if (!sub || !badge) return;
-  let i = 0;
+function startWave() {
+  const canvas = $('waveCanvas');
+  const label = $('waveLabel');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  let offset = 0;
 
-  function showLine() {
-    if (i >= SIM_LINES.length) i = 0;
-    const line = SIM_LINES[i];
-    i++;
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const bars = 60;
+    const barW = W / bars;
 
-    if (line.word) {
-      // Show with censored word + bleep effect
-      const censored = line.text.replace(
-        new RegExp('\\b' + line.word + '\\b', 'gi'),
-        m => '<span class="bad">' + m[0] + '*'.repeat(m.length - 2) + m[m.length - 1] + '</span>'
-      );
-      sub.innerHTML = censored;
-      sub.classList.add('visible');
-      badge.classList.add('visible');
+    for (let i = 0; i < bars; i++) {
+      let h;
+      if (waveActive) {
+        // Simulate audio waveform
+        h = Math.abs(Math.sin((i + offset) * 0.15) * Math.cos((i - offset) * 0.08)) * H * 0.8;
+        h += Math.random() * 6;
+        h = Math.max(3, h);
+      } else {
+        // Flat line when inactive
+        h = 2;
+      }
 
-      // Flash effect
-      sub.style.background = 'rgba(233,69,96,0.3)';
-      setTimeout(() => { sub.style.background = ''; }, 300);
+      const x = i * barW;
+      const y = (H - h) / 2;
 
-      setTimeout(() => {
-        badge.classList.remove('visible');
-        setTimeout(() => {
-          sub.classList.remove('visible');
-          setTimeout(showLine, 600);
-        }, 1200);
-      }, 800);
-    } else {
-      sub.innerHTML = line.text;
-      sub.classList.add('visible');
-      badge.classList.remove('visible');
-      setTimeout(() => {
-        sub.classList.remove('visible');
-        setTimeout(showLine, 400);
-      }, 2000);
+      if (waveMuted) {
+        ctx.fillStyle = '#e94560';
+      } else if (waveActive) {
+        ctx.fillStyle = '#4ade80';
+      } else {
+        ctx.fillStyle = '#333';
+      }
+
+      ctx.fillRect(x + 1, y, barW - 2, h);
     }
+
+    offset += 0.3;
+
+    if (label) {
+      if (waveMuted) {
+        label.textContent = 'Filtering';
+        label.style.color = '#e94560';
+      } else if (waveActive) {
+        label.textContent = 'Listening';
+        label.style.color = '#4ade80';
+      } else {
+        label.textContent = 'Inactive';
+        label.style.color = '#666';
+      }
+    }
+
+    requestAnimationFrame(draw);
   }
-  showLine();
+  draw();
 }
+
+// Poll capture status to update waveform
+function pollWaveState() {
+  chrome.runtime.sendMessage({action: 'getCaptureStatus'}, (resp) => {
+    void chrome.runtime.lastError;
+    waveActive = !!(resp && resp.active);
+  });
+  // Check if currently muting via content script
+  chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
+    if (!tabs || !tabs[0]) return;
+    chrome.tabs.get(tabs[0].id, (tab) => {
+      if (chrome.runtime.lastError) return;
+      waveMuted = !!(tab && tab.mutedInfo && tab.mutedInfo.muted);
+    });
+  });
+}
+setInterval(pollWaveState, 200);
 
 document.addEventListener('DOMContentLoaded', () => {
   fetch(chrome.runtime.getURL('blockedWords.json'))
@@ -176,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
       $('captureBtn').addEventListener('click', startCapture);
       $('stopCaptureBtn').addEventListener('click', stopCapture);
       setTimeout(checkStatus, 300);
-      runSim();
+      startWave();
+      pollWaveState();
     });
 });

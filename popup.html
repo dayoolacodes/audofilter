@@ -11,12 +11,10 @@
       <div id="status" class="status" style="position:absolute;top:4px;right:4px;font-size:11px;"></div>
       <h1>AudioFilter</h1>
 
-      <!-- Live simulation -->
-      <div class="sim-box" id="simBox">
-        <div class="sim-screen">
-          <div class="sim-sub" id="simSub"></div>
-          <div class="sim-badge" id="simBadge">MUTED</div>
-        </div>
+      <!-- Live waveform -->
+      <div class="wave-box" id="waveBox">
+        <canvas id="waveCanvas" width="296" height="60"></canvas>
+        <div class="wave-label" id="waveLabel">Inactive</div>
       </div>
 
       <label class="row"><input type="checkbox" id="enableFilter"> Enable filtering</label>

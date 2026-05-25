@@ -10,44 +10,27 @@ input[type=number] { width:100%; padding:6px; box-sizing:border-box; margin-top:
 button { flex:1; padding:8px; font-size:13px; }
 .status { margin-top:8px; font-size:12px; color:#333; }
 
-/* Simulation */
-.sim-box { margin-bottom:8px; }
-.sim-screen {
+/* Waveform */
+.wave-box {
   position: relative;
   background: #111;
   border-radius: 6px;
-  height: 80px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  overflow: hidden;
-}
-.sim-sub {
-  background: rgba(0,0,0,0.8);
-  color: #fff;
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 3px;
   margin-bottom: 8px;
-  text-align: center;
-  max-width: 90%;
-  opacity: 0;
-  transition: opacity 0.15s;
-  line-height: 1.4;
+  overflow: hidden;
+  height: 60px;
 }
-.sim-sub.visible { opacity: 1; }
-.sim-sub .bad { color: #e94560; font-weight: 700; }
-.sim-badge {
+.wave-box canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.wave-label {
   position: absolute;
-  top: 6px;
+  top: 4px;
   right: 6px;
-  background: #e94560;
-  color: #fff;
   font-size: 9px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
-  opacity: 0;
-  transition: opacity 0.15s;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.sim-badge.visible { opacity: 1; }

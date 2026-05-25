@@ -207,13 +207,35 @@
       position: relative;
       border-radius: 12px;
       overflow: hidden;
-      background: #000;
+      background: #1a1a1a;
       box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      aspect-ratio: 16/9;
     }
     .demo-video-wrap video {
       width: 100%;
+      height: 100%;
+      object-fit: cover;
       display: block;
     }
+    .video-loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a1a;
+      z-index: 2;
+      transition: opacity 0.3s;
+    }
+    .video-loader.hidden { opacity: 0; pointer-events: none; }
+    .video-loader .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid rgba(255,255,255,0.15);
+      border-top-color: #e94560;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .unmute-btn {
       position: absolute;
       bottom: 16px;
@@ -310,6 +332,7 @@
 
   <div class="demo-section">
     <div class="demo-video-wrap">
+      <div class="video-loader" id="videoLoader"><div class="spinner"></div></div>
       <video id="demoVideo" autoplay muted loop playsinline>
         <source src="demo.mp4" type="video/mp4">
       </video>
@@ -377,8 +400,15 @@
   document.getElementById('leftLayer').innerHTML = build(true);
   document.getElementById('rightLayer').innerHTML = build(false);
 
-  // Demo video unmute
+  // Demo video loader
   var demoVideo = document.getElementById('demoVideo');
+  var videoLoader = document.getElementById('videoLoader');
+  demoVideo.addEventListener('canplaythrough', function() {
+    videoLoader.classList.add('hidden');
+  });
+  if (demoVideo.readyState >= 4) videoLoader.classList.add('hidden');
+
+  // Demo video unmute
   var unmuteBtn = document.getElementById('unmuteBtn');
   unmuteBtn.addEventListener('click', function() {
     if (demoVideo.muted) {

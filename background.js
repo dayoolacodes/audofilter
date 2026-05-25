@@ -75,12 +75,21 @@ async function stopCapture() {
 // ---- Fallback: tab muting ----
 
 function fallbackMute(tabId, duration) {
+  console.log('AudioFilter BG: muting tab', tabId, 'for', duration, 'ms');
   if (muteTimers[tabId]) {
     clearTimeout(muteTimers[tabId].restoreId);
   }
-  chrome.tabs.update(tabId, { muted: true });
+  chrome.tabs.update(tabId, { muted: true }, (tab) => {
+    if (chrome.runtime.lastError) {
+      console.log('AudioFilter BG: mute FAILED:', chrome.runtime.lastError.message);
+    } else {
+      console.log('AudioFilter BG: muted OK, tab muted:', tab && tab.mutedInfo && tab.mutedInfo.muted);
+    }
+  });
   const restoreId = setTimeout(() => {
-    chrome.tabs.update(tabId, { muted: false });
+    chrome.tabs.update(tabId, { muted: false }, () => {
+      console.log('AudioFilter BG: unmuted tab', tabId);
+    });
     delete muteTimers[tabId];
   }, duration);
   muteTimers[tabId] = { restoreId };
@@ -94,6 +103,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // Content script requesting tab mute (fallback mode)
   if (msg.action === 'muteTab') {
     const tabId = sender.tab && sender.tab.id;
+    console.log('AudioFilter BG: received muteTab from tab', tabId);
     if (!tabId) { sendResponse({ ok: false }); return; }
     fallbackMute(tabId, msg.duration || 700);
     sendResponse({ ok: true, mode: 'fallback' });

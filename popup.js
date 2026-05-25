@@ -46,61 +46,19 @@ function setStatus(text) {
 }
 
 function checkStatus() {
-  // Check capture mode
-  chrome.runtime.sendMessage({action: 'getCaptureStatus'}, (resp) => {
-    void chrome.runtime.lastError;
-    if (resp && resp.active) {
-      setStatus('Audio capture active');
-      $('captureBtn').style.display = 'none';
-      $('stopCaptureBtn').style.display = '';
-      return;
-    }
-    $('captureBtn').style.display = '';
-    $('stopCaptureBtn').style.display = 'none';
-
-    // Check subtitle mode
-    chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
-      if (!tabs || !tabs[0]) return;
-      chrome.tabs.sendMessage(tabs[0].id, {action:'getStatus'}, (r) => {
-        if (chrome.runtime.lastError || !r) {
-          setStatus('Not active on this page');
-          return;
-        }
-        if (r.mode === 'subtitle-file') {
-          setStatus('Subtitle file — ' + r.mutePoints + ' mute points');
-        } else {
-          setStatus('DOM scan mode');
-        }
-      });
-    });
-  });
-}
-
-function startCapture() {
   chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
-    if (!tabs || !tabs[0]) { setStatus('No active tab'); return; }
-    chrome.runtime.sendMessage({action: 'startCapture', tabId: tabs[0].id}, (resp) => {
-      if (chrome.runtime.lastError) {
-        setStatus('Error: ' + chrome.runtime.lastError.message);
+    if (!tabs || !tabs[0]) return;
+    chrome.tabs.sendMessage(tabs[0].id, {action:'getStatus'}, (r) => {
+      if (chrome.runtime.lastError || !r) {
+        setStatus('Not active on this page');
         return;
       }
-      if (resp && resp.ok) {
-        setStatus('Audio capture active (~300ms delay)');
-        $('captureBtn').style.display = 'none';
-        $('stopCaptureBtn').style.display = '';
+      if (r.mode === 'subtitle-file') {
+        setStatus('Subtitle file — ' + r.mutePoints + ' mute points');
       } else {
-        setStatus('Capture failed: ' + (resp && resp.error || 'unknown'));
+        setStatus('Subtitle scan active');
       }
     });
-  });
-}
-
-function stopCapture() {
-  chrome.runtime.sendMessage({action: 'stopCapture'}, () => {
-    void chrome.runtime.lastError;
-    setStatus('Capture stopped');
-    $('captureBtn').style.display = '';
-    $('stopCaptureBtn').style.display = 'none';
   });
 }
 
@@ -168,22 +126,26 @@ function startWave() {
   draw();
 }
 
-// Poll capture status to update waveform
+// Poll status to update waveform
 function pollWaveState() {
-  chrome.runtime.sendMessage({action: 'getCaptureStatus'}, (resp) => {
-    void chrome.runtime.lastError;
-    waveActive = !!(resp && resp.active);
-  });
-  // Check if currently muting via content script
   chrome.tabs.query({active:true, currentWindow:true}, (tabs) => {
     if (!tabs || !tabs[0]) return;
+    // Check if tab is muted (filtering active)
     chrome.tabs.get(tabs[0].id, (tab) => {
       if (chrome.runtime.lastError) return;
       waveMuted = !!(tab && tab.mutedInfo && tab.mutedInfo.muted);
     });
+    // Check if content script is running
+    chrome.tabs.sendMessage(tabs[0].id, {action:'getStatus'}, (resp) => {
+      if (chrome.runtime.lastError || !resp) {
+        waveActive = false;
+        return;
+      }
+      waveActive = true;
+    });
   });
 }
-setInterval(pollWaveState, 200);
+setInterval(pollWaveState, 300);
 
 document.addEventListener('DOMContentLoaded', () => {
   fetch(chrome.runtime.getURL('blockedWords.json'))
@@ -193,8 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
     .finally(() => {
       load();
       $('saveBtn').addEventListener('click', save);
-      $('captureBtn').addEventListener('click', startCapture);
-      $('stopCaptureBtn').addEventListener('click', stopCapture);
       setTimeout(checkStatus, 300);
       startWave();
       pollWaveState();

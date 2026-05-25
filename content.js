@@ -452,11 +452,20 @@ if (window.__audioFilterLoaded) {
     setTimeout(scanAndProcess, 500);
   }
 
+  function stopObserving() {
+    if (observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    clearScheduled();
+  }
+
   // ---- Message handling ----
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || !msg.action) return;
     if (msg.action === 'getStatus') {
       sendResponse({
+        enabled: settings.enabled,
         mode: subtitleIntercepted ? 'subtitle-file' : 'dom-scan',
         mutePoints: allMutePoints.length
       });
@@ -464,13 +473,13 @@ if (window.__audioFilterLoaded) {
     }
     if (msg.action === 'reloadSettings') {
       loadSettings(() => {
-        // Reprocess intercepted subtitles with new blocked words
-        if (subtitleIntercepted) {
-          clearScheduled();
-          // Re-parse would require keeping raw cues; for now just reload page
+        if (settings.enabled) {
+          if (subtitleIntercepted) clearScheduled();
+          startObserving();
+        } else {
+          stopObserving();
         }
         sendResponse({ok:true});
-        startObserving();
       });
       return true;
     }

@@ -137,13 +137,13 @@ function pollWaveState() {
       if (chrome.runtime.lastError) return;
       waveMuted = !!(tab && tab.mutedInfo && tab.mutedInfo.muted);
     });
-    // Check if content script is running
+    // Check if content script is running and enabled
     chrome.tabs.sendMessage(tabs[0].id, {action:'getStatus'}, (resp) => {
       if (chrome.runtime.lastError || !resp) {
         waveActive = false;
         return;
       }
-      waveActive = true;
+      waveActive = !!(resp.enabled);
     });
   });
 }

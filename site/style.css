@@ -63,7 +63,8 @@ nav {
   justify-content: center;
   gap: 60px;
   padding: 0 80px;
-  overflow: hidden;
+  overflow: visible;
+  min-height: 0;
 }
 .hero {
   flex: 0 1 480px;
@@ -254,7 +255,7 @@ footer a:hover { color: #e94560; }
 
 /* Responsive */
 @media (max-width: 900px) {
-  .hero-row { flex-direction: column; gap: 32px; padding: 32px 24px; }
+  .hero-row { flex-direction: column; gap: 32px; padding: 32px 24px; flex: none; overflow: visible; }
   .hero { text-align: center; align-items: center; flex: none; width: 100%; }
   .hero h1 { white-space: normal; }
   .platforms { justify-content: center; }

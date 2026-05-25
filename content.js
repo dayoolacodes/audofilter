@@ -437,6 +437,7 @@ if (window.__audioFilterLoaded) {
       debounceMap.set(matchKey, now());
       log('MUTING for word:', wTrim, 'duration:', settings.muteDuration || DEFAULTS.muteDuration);
       muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, wTrim);
+      try { chrome.storage.local.set({ lastDetected: wTrim, lastDetectedAt: now() }); } catch(e) {}
       break;
     }
   }

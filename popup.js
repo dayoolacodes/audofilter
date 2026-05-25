@@ -151,7 +151,21 @@ function pollWaveState() {
     });
   });
 }
+let lastShownAt = 0;
+function pollDetected() {
+  chrome.storage.local.get(['lastDetected', 'lastDetectedAt'], (data) => {
+    if (!data.lastDetectedAt || data.lastDetectedAt <= lastShownAt) return;
+    lastShownAt = data.lastDetectedAt;
+    const el = $('waveDetected');
+    if (!el) return;
+    el.textContent = 'Muted: ' + data.lastDetected;
+    el.classList.add('visible');
+    setTimeout(() => { el.classList.remove('visible'); }, 2500);
+  });
+}
+
 setInterval(pollWaveState, 300);
+setInterval(pollDetected, 300);
 
 let saveTimer = null;
 function autoSave() {

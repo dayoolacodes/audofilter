@@ -91,3 +91,16 @@ h1 { margin-bottom: 8px; }
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+.wave-detected {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #e94560;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.wave-detected.visible { opacity: 1; }

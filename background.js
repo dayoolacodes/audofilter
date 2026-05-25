@@ -42,7 +42,7 @@ async function startCapture(tabId) {
       action: 'offscreen-start',
       streamId: streamId,
       blockedWords: words
-    });
+    }, () => { void chrome.runtime.lastError; });
 
     captureTabId = tabId;
     captureActive = true;
@@ -61,9 +61,13 @@ async function stopCapture() {
   if (captureTabId) {
     try { chrome.tabs.update(captureTabId, { muted: false }); } catch (e) {}
   }
-  try { chrome.runtime.sendMessage({ action: 'offscreen-stop' }); } catch (e) {}
-  // Close offscreen document to fully release the stream
-  try { await chrome.offscreen.closeDocument(); } catch (e) {}
+  try {
+    const contexts = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+    if (contexts.length > 0) {
+      chrome.runtime.sendMessage({ action: 'offscreen-stop' }, () => { void chrome.runtime.lastError; });
+      await chrome.offscreen.closeDocument();
+    }
+  } catch (e) {}
   captureActive = false;
   captureTabId = null;
 }

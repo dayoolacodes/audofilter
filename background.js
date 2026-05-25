@@ -91,11 +91,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'muteTab') {
     const tabId = sender.tab && sender.tab.id;
     if (!tabId) { sendResponse({ ok: false }); return; }
-    // If capture mode is active on this tab, skip — offscreen handles it
-    if (captureActive && captureTabId === tabId) {
-      sendResponse({ ok: true, mode: 'capture' });
-      return;
-    }
     fallbackMute(tabId, msg.duration || 700);
     sendResponse({ ok: true, mode: 'fallback' });
     return;

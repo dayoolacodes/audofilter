@@ -30,7 +30,7 @@ if (window.__audioFilterLoaded) {
   let subtitleElementIds = new WeakMap();
   let nextSubtitleElementId = 1;
 
-  function log(...args) { /* silent */ }
+  function log(...args) { console.log('AudioFilter:', ...args); }
   function now() { return Date.now(); }
 
   function loadSettings(callback) {

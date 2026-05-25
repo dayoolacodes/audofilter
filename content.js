@@ -30,7 +30,7 @@ if (window.__audioFilterLoaded) {
   let subtitleElementIds = new WeakMap();
   let nextSubtitleElementId = 1;
 
-  function log(...args) { console.log('AudioFilter:', ...args); }
+  function log(...args) { /* silent */ }
   function now() { return Date.now(); }
 
   function loadSettings(callback) {
@@ -412,21 +412,30 @@ if (window.__audioFilterLoaded) {
     log('Found', candidates.length, 'subtitle candidates');
 
     const blocked = settings.blockedWords || [];
-    if (!blocked.length) return;
+    log('Blocked words count:', blocked.length);
+    if (!blocked.length) {
+      log('NO BLOCKED WORDS — check settings');
+      return;
+    }
 
     for (const el of candidates) {
       const text = (el.innerText || el.textContent || '').trim();
-      if (!text) continue;
+      if (!text) { log('Empty text, skip'); continue; }
       const lower = text.toLowerCase();
-      if (lower.indexOf('*') !== -1) continue;
+      if (lower.indexOf('*') !== -1) { log('Has *, skip:', lower.substring(0, 50)); continue; }
+      log('Checking text:', JSON.stringify(lower.substring(0, 80)), 'tag:', el.tagName, 'class:', (el.className || '').toString().substring(0, 50));
       const match = findBlockedWordInText(lower);
       if (!match) continue;
       const wTrim = match.word.trim();
       const elementId = getSubtitleElementId(el);
       const matchKey = `${elementId}::${wTrim.toLowerCase()}::${lower}`;
       const last = debounceMap.get(matchKey) || 0;
-      if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) continue;
+      if (now() - last < (settings.debounceMs || DEFAULTS.debounceMs)) {
+        log('Debounced:', wTrim);
+        continue;
+      }
       debounceMap.set(matchKey, now());
+      log('MUTING for word:', wTrim, 'duration:', settings.muteDuration || DEFAULTS.muteDuration);
       muteTabForDuration(settings.muteDuration || DEFAULTS.muteDuration, wTrim);
       break;
     }
@@ -478,7 +487,7 @@ if (window.__audioFilterLoaded) {
         setTimeout(() => { if (settings.enabled) scanAndProcess(); }, 2000);
         setTimeout(() => { if (settings.enabled) scanAndProcess(); }, 5000);
       }
-      log('Initialized. Enabled:', settings.enabled, 'Blocked words:', (settings.blockedWords || []).length);
+      log('Initialized. Enabled:', settings.enabled, 'Blocked words:', (settings.blockedWords || []).length, 'First few:', (settings.blockedWords || []).slice(0, 5));
     });
   });
 }

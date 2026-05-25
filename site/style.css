@@ -1,6 +1,6 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
-  height: 100%;
+  min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -133,6 +133,8 @@ nav {
   overflow: hidden;
   white-space: nowrap;
   padding: 16px 0;
+  flex-shrink: 0;
+  min-height: 48px;
 }
 .marquee-layer {
   white-space: nowrap;

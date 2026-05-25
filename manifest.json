@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AudioFilter",
   "version": "1.0.1",
-  "description": "Automatically mutes audio when profanity appears in video subtitles. Works on Netflix, Prime Video, Disney+, and more.",
+  "description": "Automatically mutes audio when profanity appears in video subtitles. Works on major streaming sites and any website with captions.",
   "permissions": ["storage", "tabs", "tabCapture", "offscreen"],
   "host_permissions": [
     "*://*.youtube.com/*",

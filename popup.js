@@ -12,6 +12,8 @@ function $(id) { return document.getElementById(id); }
 function load() {
   chrome.storage.sync.get(DEFAULTS, (items) => {
     $('enableFilter').checked = items.enabled;
+    $('filterLabel').textContent = items.enabled ? 'Filtering On' : 'Filtering Off';
+    $('filterLabel').style.color = items.enabled ? '#4ade80' : '#666';
     $('blockedWords').value = (items.blockedWords || []).join('\n');
     $('muteDuration').value = items.muteDuration || DEFAULTS.muteDuration;
     $('preMuteLead').value = items.preMuteLeadMs || DEFAULTS.preMuteLeadMs;
@@ -161,7 +163,12 @@ document.addEventListener('DOMContentLoaded', () => {
     .finally(() => {
       load();
       // Auto-save on any change
-      $('enableFilter').addEventListener('change', autoSave);
+      $('enableFilter').addEventListener('change', () => {
+        const on = $('enableFilter').checked;
+        $('filterLabel').textContent = on ? 'Filtering On' : 'Filtering Off';
+        $('filterLabel').style.color = on ? '#4ade80' : '#666';
+        autoSave();
+      });
       $('blockedWords').addEventListener('input', autoSave);
       $('muteDuration').addEventListener('input', autoSave);
       $('preMuteLead').addEventListener('input', autoSave);

@@ -9,13 +9,7 @@
   <body>
     <div class="container" style="position:relative;">
       <div id="status" class="status" style="position:absolute;top:4px;right:4px;font-size:11px;"></div>
-      <div class="header-row">
-        <h1>AudioFilter</h1>
-        <label class="switch">
-          <input type="checkbox" id="enableFilter">
-          <span class="switch-slider"></span>
-        </label>
-      </div>
+      <h1>AudioFilter</h1>
 
       <!-- Live waveform -->
       <div class="wave-box" id="waveBox">
@@ -35,6 +29,13 @@
           <label class="label">Pre-mute lead (ms)</label>
           <input id="preMuteLead" type="number" min="0" step="50" />
         </div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label-text" id="filterLabel">Filtering Off</span>
+        <label class="switch">
+          <input type="checkbox" id="enableFilter">
+          <span class="switch-slider"></span>
+        </label>
       </div>
     </div>
     <script src="popup.js"></script>

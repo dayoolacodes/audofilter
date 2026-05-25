@@ -7,12 +7,22 @@ textarea { width:100%; box-sizing:border-box; font-size:13px; margin-top:6px; }
 input[type=number] { width:100%; padding:6px; box-sizing:border-box; margin-top:4px; }
 .status { margin-top:8px; font-size:12px; color:#333; }
 
-/* Header with switch */
-.header-row {
+h1 { margin-bottom: 8px; }
+
+/* Bottom toggle */
+.toggle-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+.toggle-label-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
 }
 
 /* Toggle switch */

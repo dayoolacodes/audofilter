@@ -25,4 +25,4 @@ AudioFilter does not communicate with any external servers or third-party servic
 
 ## Contact
 
-If you have questions about this privacy policy, open an issue at: https://github.com/dayoola/audofilter/issues
+If you have questions about this privacy policy, open an issue at: https://github.com/dayoola/audiofilter/issues

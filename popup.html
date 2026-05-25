@@ -9,7 +9,13 @@
   <body>
     <div class="container" style="position:relative;">
       <div id="status" class="status" style="position:absolute;top:4px;right:4px;font-size:11px;"></div>
-      <h1>AudioFilter</h1>
+      <div class="header-row">
+        <h1>AudioFilter</h1>
+        <label class="switch">
+          <input type="checkbox" id="enableFilter">
+          <span class="switch-slider"></span>
+        </label>
+      </div>
 
       <!-- Live waveform -->
       <div class="wave-box" id="waveBox">
@@ -17,19 +23,18 @@
         <div class="wave-label" id="waveLabel">Inactive</div>
       </div>
 
-      <label class="row"><input type="checkbox" id="enableFilter"> Enable filtering</label>
-
       <label class="label">Blocked words (one per line)</label>
       <textarea id="blockedWords" rows="6" placeholder="one\nword\nanother"></textarea>
 
-      <label class="label">Mute duration (ms)</label>
-      <input id="muteDuration" type="number" min="100" step="100" />
-
-      <label class="label">Pre-mute lead (ms)</label>
-      <input id="preMuteLead" type="number" min="0" step="50" />
-
-      <div class="buttons">
-        <button id="saveBtn">Save</button>
+      <div class="row-pair">
+        <div class="field">
+          <label class="label">Mute duration (ms)</label>
+          <input id="muteDuration" type="number" min="100" step="100" />
+        </div>
+        <div class="field">
+          <label class="label">Pre-mute lead (ms)</label>
+          <input id="preMuteLead" type="number" min="0" step="50" />
+        </div>
       </div>
     </div>
     <script src="popup.js"></script>

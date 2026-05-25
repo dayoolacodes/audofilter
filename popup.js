@@ -147,6 +147,12 @@ function pollWaveState() {
 }
 setInterval(pollWaveState, 300);
 
+let saveTimer = null;
+function autoSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 500);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   fetch(chrome.runtime.getURL('blockedWords.json'))
     .then(r => r.json())
@@ -154,7 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(() => {})
     .finally(() => {
       load();
-      $('saveBtn').addEventListener('click', save);
+      // Auto-save on any change
+      $('enableFilter').addEventListener('change', autoSave);
+      $('blockedWords').addEventListener('input', autoSave);
+      $('muteDuration').addEventListener('input', autoSave);
+      $('preMuteLead').addEventListener('input', autoSave);
       setTimeout(checkStatus, 300);
       startWave();
       pollWaveState();

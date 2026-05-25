@@ -5,6 +5,7 @@
   "description": "Automatically mutes audio when profanity appears in video subtitles. Works on Netflix, Prime Video, Disney+, and more.",
   "permissions": ["storage", "tabs", "tabCapture", "offscreen"],
   "host_permissions": [
+    "*://*.youtube.com/*",
     "*://*.netflix.com/*",
     "*://*.primevideo.com/*",
     "*://*.amazon.com/gp/video/*",
@@ -51,6 +52,7 @@
   "content_scripts": [
     {
       "matches": [
+        "*://*.youtube.com/*",
         "*://*.netflix.com/*",
         "*://*.primevideo.com/*",
         "*://*.amazon.com/gp/video/*",

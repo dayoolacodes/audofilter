@@ -52,8 +52,7 @@ function checkStatus() {
     if (!tabs || !tabs[0]) return;
     chrome.tabs.sendMessage(tabs[0].id, {action:'getStatus'}, (r) => {
       if (chrome.runtime.lastError || !r) {
-        setStatus('Not active on this page');
-        // Show as off when not active
+        setStatus('Reload page to activate');
         $('enableFilter').checked = false;
         $('filterLabel').textContent = 'Filtering Off';
         $('filterLabel').style.color = '#666';

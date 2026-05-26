@@ -1,9 +1,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
-  min-height: 100%;
+  height: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -256,7 +254,8 @@ footer a:hover { color: #e94560; }
 
 /* Responsive */
 @media (max-width: 900px) {
-  .hero-row { flex-direction: column; gap: 32px; padding: 32px 24px; flex: none; overflow: visible; min-height: auto; }
+  html, body { height: auto; min-height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .hero-row { flex-direction: column; gap: 32px; padding: 32px 24px; flex: none; overflow: visible; }
   .hero { text-align: center; align-items: center; flex: none; width: 100%; }
   .hero h1 { white-space: normal; }
   .platforms { justify-content: center; }
